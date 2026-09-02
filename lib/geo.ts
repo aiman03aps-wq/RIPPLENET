@@ -20,6 +20,9 @@ export interface RainfallFigures {
   last7dMm: number;
   next24hMm: number;
   next72hMm: number;
+  currentMmH?: number;
+  tempC?: number;
+  source?: string;
 }
 
 export type RiskLevel = "Low" | "Moderate" | "High" | "Extreme";

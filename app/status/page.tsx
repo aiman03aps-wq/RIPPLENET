@@ -19,6 +19,7 @@ import { fetchRoute } from "../../lib/osrm";
 import { haversineKm } from "../../lib/geo";
 import { formatFullDate, parseNeeds } from "../../lib/needs";
 import { runMultiAgentPipeline } from "../../lib/agents";
+import { fetchRainfall } from "../../lib/weather";
 import { CopyRequestId } from "./copy-request-id";
 import { TrackSearch } from "./track-search";
 import { StatusRefresher } from "./status-refresher";
@@ -208,13 +209,17 @@ export default async function StatusPage(props: {
   if (!request) return shell(<TrackSearch notFound />);
 
   const camp = request.camp;
-  const route = camp ? await fetchRoute({ lat: camp.lat, lng: camp.lng }, { lat: request.lat, lng: request.lng }) : null;
+  const [route, liveRainfall] = await Promise.all([
+    camp ? fetchRoute({ lat: camp.lat, lng: camp.lng }, { lat: request.lat, lng: request.lng }) : null,
+    fetchRainfall({ lat: request.lat, lng: request.lng }),
+  ]);
+
   const distanceKm =
     route?.distanceKm ??
     (camp ? Math.round(haversineKm({ lat: camp.lat, lng: camp.lng }, { lat: request.lat, lng: request.lng }) * 10) / 10 : null);
   const etaMin = route?.durationMin ?? null;
   const live = request.status !== "resolved" && request.status !== "cancelled";
-    const stepInfo = statusSteps[request.status];
+  const stepInfo = statusSteps[request.status];
   const needsList = parseNeeds(request.needs);
 
   const pipeline = runMultiAgentPipeline({
@@ -225,11 +230,17 @@ export default async function StatusPage(props: {
     type: request.type,
     peopleCount: request.peopleCount,
     district: request.district,
+    lat: request.lat,
+    lng: request.lng,
     campName: camp?.name,
     volunteerName: request.volunteer?.name,
     routeDistanceKm: distanceKm,
     routeDurationMin: etaMin,
     routeVia: route?.viaName,
+    rainfall24h: liveRainfall.last24hMm,
+    rainfall7d: liveRainfall.last7dMm,
+    currentRainfallRate: liveRainfall.currentMmH,
+    weatherSource: liveRainfall.source,
   });
 
   return shell(
