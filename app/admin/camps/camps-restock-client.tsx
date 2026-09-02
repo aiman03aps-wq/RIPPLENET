@@ -470,12 +470,12 @@ export function CampsRestockClient({
       </main>
 
       {sheetOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 backdrop-blur-[2px]">
+        <div className="fixed inset-0 z-[90] flex items-end justify-center bg-ink/50 backdrop-blur-xs">
           <div
             role="dialog"
             aria-modal="true"
             aria-label="Add camp"
-            className="w-full max-w-[480px] rounded-t-3xl bg-paper px-5 pb-8 pt-5 shadow-2xl"
+            className="w-full max-w-[480px] max-h-[85vh] overflow-y-auto rounded-t-3xl bg-white px-5 pb-28 pt-6 shadow-2xl animate-slide-up"
           >
             <div className="flex items-center justify-between">
               <h2 className="font-display text-[18px] font-bold tracking-tight text-ink">

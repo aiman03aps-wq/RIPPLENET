@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AuthGuard } from "../components/auth-guard";
 import { StaffNav } from "../components/staff-nav";
-import { IconBell, IconChevronDown } from "../components/icons";
+import { IconChevronDown } from "../components/icons";
+import { NotificationBell } from "../components/notification-bell";
 import { prisma } from "../../lib/db";
 import { getSession } from "../../lib/session";
 import { parseNeeds } from "../../lib/needs";
@@ -58,17 +59,7 @@ export default async function QueuePage() {
           </h1>
           <IconChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
         </div>
-        <div
-          className="relative ml-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink"
-          aria-label={`${pendingCount} new requests`}
-        >
-          <IconBell className="h-[22px] w-[22px]" />
-          {pendingCount > 0 && (
-            <span className="absolute right-0 top-0 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-red-500 px-1 text-[9.5px] font-bold text-white shadow-sm">
-              {pendingCount}
-            </span>
-          )}
-        </div>
+        <NotificationBell count={pendingCount} />
       </header>
 
       <main className="pb-[110px]">

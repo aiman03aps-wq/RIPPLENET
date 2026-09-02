@@ -85,7 +85,10 @@ export function ResolveForm({
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(data.error ?? "Could not resolve delivery");
-      router.push(`/volunteer/tasks/${requestCode}`);
+      
+      // Redirect directly to Volunteer Delivery History
+      router.push(`/volunteer/history?resolved=${encodeURIComponent(requestCode)}`);
+      router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not resolve delivery");
       setBusy(false);

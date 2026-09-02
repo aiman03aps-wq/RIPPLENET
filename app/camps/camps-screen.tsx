@@ -1,6 +1,7 @@
 "use client";
 
-import { Translated, LanguagePill } from "../components/citizen-translated";
+import { Translated } from "../components/citizen-translated";
+import { CitizenHeader } from "../components/citizen-header";
 import { NearbyCamps } from "../components/nearby-camps";
 import { CitizenNav } from "../components/citizen-nav";
 import { useCitizenLocation } from "../components/use-citizen-location";
@@ -10,13 +11,13 @@ export function CampsScreen() {
 
   return (
     <div className="relative mx-auto min-h-dvh w-full max-w-[480px] bg-paper shadow-xl">
+      <CitizenHeader title="Relief Camps" subtitle="Find Shelter & Medical Aid" />
 
-      <header className="flex items-center justify-between px-5 pt-2">
+      <header className="px-5 pt-4">
         <div className="leading-tight">
           <Translated k="nearbyCamps" as="h1" className="font-display text-[22px] font-bold tracking-tight text-ink" />
           <Translated k="hereForYou" as="p" className="mt-0.5 text-[12px] font-medium text-slate-500" />
         </div>
-        <LanguagePill />
       </header>
 
       <main className="pb-[110px]">

@@ -98,7 +98,7 @@ export default async function VolunteerSupportPage() {
               {/* Camp Dispatcher */}
               <a
                 href={`tel:${campPhone.replace(/\s+/g, "")}`}
-                className="flex items-center justify-between rounded-2xl bg-slate-50 p-3 transition hover:bg-sky-50/60"
+                className="flex items-center justify-between rounded-2xl bg-slate-50 p-3 transition hover:bg-sky-50/60 active:scale-95"
               >
                 <div className="flex items-center gap-3">
                   <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-100 text-channel">
@@ -114,8 +114,8 @@ export default async function VolunteerSupportPage() {
 
               {/* Medical / Outbreak Clinical Desk */}
               <a
-                href={`tel:${campPhone.replace(/\s+/g, "")}`}
-                className="flex items-center justify-between rounded-2xl bg-slate-50 p-3 transition hover:bg-rose-50/60"
+                href="tel:080044448"
+                className="flex items-center justify-between rounded-2xl bg-slate-50 p-3 transition hover:bg-rose-50/60 active:scale-95"
               >
                 <div className="flex items-center gap-3">
                   <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
@@ -123,7 +123,7 @@ export default async function VolunteerSupportPage() {
                   </span>
                   <div>
                     <p className="text-[13px] font-bold text-ink">Medical &amp; Triage Officer</p>
-                    <p className="text-[11px] text-slate-500">Severe cholera, snake bite, or newborn distress guidance</p>
+                    <p className="text-[11px] text-slate-500">Clinical guidance: Cholera, snake bite, neonatal (0800 44448)</p>
                   </div>
                 </div>
                 <IconChevronRight className="h-4 w-4 text-slate-300" />
@@ -131,16 +131,33 @@ export default async function VolunteerSupportPage() {
 
               {/* Vehicle / Fuel Support */}
               <a
-                href={`tel:${campPhone.replace(/\s+/g, "")}`}
-                className="flex items-center justify-between rounded-2xl bg-slate-50 p-3 transition hover:bg-amber-50/60"
+                href="tel:02138659999"
+                className="flex items-center justify-between rounded-2xl bg-slate-50 p-3 transition hover:bg-amber-50/60 active:scale-95"
               >
                 <div className="flex items-center gap-3">
                   <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
                     <IconTruck className="h-4 w-4" />
                   </span>
                   <div>
-                    <p className="text-[13px] font-bold text-ink">Transport &amp; Fuel Logistics</p>
-                    <p className="text-[11px] text-slate-500">4x4 vehicle recovery, boat tow, or fuel canister dispatch</p>
+                    <p className="text-[13px] font-bold text-ink">Transport &amp; Fleet Recovery</p>
+                    <p className="text-[11px] text-slate-500">4x4 recovery, boat tow, fuel dispatch (021 38659999)</p>
+                  </div>
+                </div>
+                <IconChevronRight className="h-4 w-4 text-slate-300" />
+              </a>
+
+              {/* PDMA Disaster Control Center */}
+              <a
+                href="tel:1736"
+                className="flex items-center justify-between rounded-2xl bg-slate-50 p-3 transition hover:bg-purple-50/60 active:scale-95"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-100 text-purple-600">
+                    <IconShield className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className="text-[13px] font-bold text-ink">PDMA Disaster Command Center</p>
+                    <p className="text-[11px] text-slate-500">Government disaster relief hotline (1736)</p>
                   </div>
                 </div>
                 <IconChevronRight className="h-4 w-4 text-slate-300" />

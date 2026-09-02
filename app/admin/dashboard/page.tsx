@@ -4,8 +4,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuthGuard } from "../../components/auth-guard";
 import { CampsMap, type CampMapPoint } from "../../components/camps-map";
+import { NotificationBell } from "../../components/notification-bell";
 import {
-  IconBell,
   IconBrain,
   IconCalendar,
   IconCheck,
@@ -261,18 +261,7 @@ export default async function AdminDashboardPage() {
           RippleNet AI Admin
         </p>
         <div className="flex items-center gap-2.5">
-          <Link
-            href="/admin/restock"
-            className="relative flex h-10 w-10 items-center justify-center rounded-full text-ink"
-            aria-label="Notifications"
-          >
-            <IconBell className="h-[22px] w-[22px]" />
-            {alertCount > 0 && (
-              <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
-                {alertCount}
-              </span>
-            )}
-          </Link>
+          <NotificationBell count={alertCount} />
           <Image
             src="/images/avatar_ali.png"
             alt="Admin profile"

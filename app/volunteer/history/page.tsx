@@ -30,7 +30,13 @@ export default async function VolunteerHistoryPage() {
 
   const [resolvedRequests, allTasks, camp] = await Promise.all([
     prisma.request.findMany({
-      where: { volunteerId: session.id, status: "resolved" },
+      where: {
+        OR: [
+          { volunteerId: session.id, status: "resolved" },
+          { campId: session.campId ?? undefined, status: "resolved" },
+          { status: "resolved" },
+        ],
+      },
       orderBy: [{ resolvedAt: "desc" }, { createdAt: "desc" }],
     }),
     prisma.request.findMany({
