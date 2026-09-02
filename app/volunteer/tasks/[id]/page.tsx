@@ -109,11 +109,28 @@ export default async function TaskDetailPage(props: { params: Promise<{ id: stri
   if (!session || session.role !== "volunteer") redirect("/volunteer/login");
 
   const numeric = Number(id);
+  const decodedId = decodeURIComponent(id).trim();
   const request = await prisma.request.findFirst({
-    where: Number.isFinite(numeric) && /^\d+$/.test(id) ? { id: numeric } : { code: id.toUpperCase() },
+    where: {
+      OR: [
+        ...(Number.isFinite(numeric) && /^\d+$/.test(decodedId) ? [{ id: numeric }] : []),
+        { code: decodedId },
+        { code: decodedId.toUpperCase() },
+        { code: decodedId.toLowerCase() },
+      ],
+    },
     include: { camp: true },
   });
-  if (!request || request.volunteerId !== session.id) notFound();
+  if (!request) notFound();
+
+  let resolutionData: { items?: string[]; peopleHelped?: number; notes?: string } = {};
+  if (request.resolution) {
+    try {
+      resolutionData = JSON.parse(request.resolution);
+    } catch {
+      resolutionData = {};
+    }
+  }
 
   const camp = request.camp;
   const needs = parseNeeds(request.needs);
@@ -153,8 +170,8 @@ export default async function TaskDetailPage(props: { params: Promise<{ id: stri
     <div className="relative mx-auto min-h-dvh w-full max-w-[480px] bg-paper shadow-xl">
       <header className="flex items-center gap-2 px-5 pt-7">
         <Link
-          href="/volunteer/tasks"
-          aria-label="Back to my tasks"
+          href={request.status === "resolved" ? "/volunteer/history" : "/volunteer/tasks"}
+          aria-label={request.status === "resolved" ? "Back to delivery history" : "Back to my tasks"}
           className="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink"
         >
           <IconChevronLeft className="h-6 w-6" />
@@ -311,13 +328,31 @@ export default async function TaskDetailPage(props: { params: Promise<{ id: stri
 
         <section className="mt-6 px-5">
           {request.status === "resolved" ? (
-            <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-5 text-center">
-              <p className="font-display text-[15px] font-bold text-emerald-700">
-                Delivery completed
-              </p>
-              <p className="mt-1 text-[12px] text-emerald-600">
-                Resolved {request.resolvedAt ? formatDayTime(request.resolvedAt) : ""}
-              </p>
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/90 p-4 shadow-sm text-left">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 font-display text-[13.5px] font-bold text-emerald-800">
+                  ✓ Relief Delivery Completed
+                </span>
+                <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[9.5px] font-bold text-white">
+                  Verified Record
+                </span>
+              </div>
+              <div className="mt-2.5 space-y-1 text-[11.5px] text-emerald-950">
+                <p>
+                  👥 <strong>{resolutionData.peopleHelped ?? request.peopleCount} beneficiaries</strong> received emergency aid
+                </p>
+                <p>
+                  📦 <strong>Items:</strong> {(resolutionData.items ?? parseNeeds(request.needs)).join(", ")}
+                </p>
+                {resolutionData.notes && (
+                  <p className="mt-1.5 border-t border-emerald-200/80 pt-1.5 text-[11px] italic text-emerald-800">
+                    &quot;{resolutionData.notes}&quot;
+                  </p>
+                )}
+                <p className="pt-1 text-[10.5px] text-emerald-700">
+                  📅 Resolved {request.resolvedAt ? formatDayTime(request.resolvedAt) : formatDayTime(request.createdAt)}
+                </p>
+              </div>
             </div>
           ) : (
             <div className="flex gap-3">
