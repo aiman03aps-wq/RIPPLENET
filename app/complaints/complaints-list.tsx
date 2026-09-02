@@ -38,13 +38,14 @@ function shortDate(iso: string): string {
 
 export function ComplaintsList({ complaints }: { complaints: ComplaintView[] }) {
   const router = useRouter();
+  const [complaintsList, setComplaintsList] = useState<ComplaintView[]>(complaints);
   const [tab, setTab] = useState<"inbox" | "progress" | "resolved">("inbox");
   const [busyId, setBusyId] = useState<number | null>(null);
   const [resolveId, setResolveId] = useState<number | null>(null);
   const [responseText, setResponseText] = useState("");
   const [error, setError] = useState("");
 
-  const progressCount = complaints.filter((c) => c.status === "in_progress").length;
+  const progressCount = complaintsList.filter((c) => c.status === "in_progress").length;
 
   const tabs = [
     { id: "inbox" as const, label: "Inbox", badge: null as number | null },
@@ -52,7 +53,7 @@ export function ComplaintsList({ complaints }: { complaints: ComplaintView[] }) 
     { id: "resolved" as const, label: "Resolved", badge: null as number | null },
   ];
 
-  const visible = complaints.filter((c) => {
+  const visible = complaintsList.filter((c) => {
     if (tab === "progress") return c.status === "in_progress";
     if (tab === "resolved") return c.status === "resolved";
     return true;
@@ -67,41 +68,55 @@ export function ComplaintsList({ complaints }: { complaints: ComplaintView[] }) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, status: "in_progress" }),
       });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.error ?? "Could not update complaint");
       }
-      router.refresh();
+      setComplaintsList((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, status: "in_progress" } : c))
+      );
     } catch (e) {
+      console.error("startReview error:", e);
       setError(e instanceof Error ? e.message : "Could not update complaint");
     } finally {
       setBusyId(null);
+      router.refresh();
     }
   }
 
   async function resolve() {
-    if (resolveId == null) return;
+    if (resolveId == null || !responseText.trim()) return;
     setBusyId(resolveId);
     setError("");
     try {
       const res = await fetch("/api/complaints", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: resolveId, response: responseText }),
+        body: JSON.stringify({ id: resolveId, response: responseText.trim() }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Could not resolve complaint");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error ?? "Could not resolve complaint");
+      }
+      setComplaintsList((prev) =>
+        prev.map((c) =>
+          c.id === resolveId
+            ? { ...c, status: "resolved", response: responseText.trim() }
+            : c
+        )
+      );
       setResolveId(null);
       setResponseText("");
-      router.refresh();
     } catch (e) {
+      console.error("resolve error:", e);
       setError(e instanceof Error ? e.message : "Could not resolve complaint");
     } finally {
       setBusyId(null);
+      router.refresh();
     }
   }
 
-  const resolving = complaints.find((c) => c.id === resolveId);
+  const resolving = complaintsList.find((c) => c.id === resolveId);
 
   return (
     <div>

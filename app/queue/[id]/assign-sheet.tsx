@@ -65,7 +65,7 @@ export function AssignButton({ requestCode, volunteers }: AssignSheetProps) {
             role="dialog"
             aria-modal="true"
             aria-label="Assign volunteer"
-            className="w-full max-w-[480px] rounded-t-3xl bg-paper px-5 pb-8 pt-5 shadow-2xl"
+            className="w-full max-w-[480px] rounded-t-3xl bg-paper px-5 pb-12 pt-5 shadow-2xl"
           >
             <div className="flex items-center justify-between">
               <h2 className="font-display text-[18px] font-bold tracking-tight text-ink">
