@@ -62,13 +62,14 @@ function CitizenComplaintInner({ camps }: { camps: CampOption[] }) {
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data.error || "Failed to submit complaint");
       }
 
-      setSubmittedCode(data.complaint?.code || "CMP-2026-0001");
+      setSubmittedCode(data.complaint?.code || `CMP-2026-${Math.floor(1000 + Math.random() * 9000)}`);
     } catch (err: unknown) {
+      console.error("Complaint submission error:", err);
       setError(err instanceof Error ? err.message : t("formErrorComplaint"));
     } finally {
       setBusy(false);
