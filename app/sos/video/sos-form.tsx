@@ -3,14 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Translated, LanguagePill } from "../../components/citizen-translated";
+import { Translated } from "../../components/citizen-translated";
+import { CitizenHeader } from "../../components/citizen-header";
+import { CitizenNav } from "../../components/citizen-nav";
 import {
   IconCheck,
-  IconChevronLeft,
-  IconInfo,
   IconMaximize,
   IconPlayFilled,
   IconSend,
+  IconVolume2,
+  IconVolumeX,
 } from "../../components/icons";
 import { NeedsSelector } from "./needs-selector";
 import { useCitizenLocation } from "../../components/use-citizen-location";
@@ -31,6 +33,8 @@ export function SosForm() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<number>(undefined);
+  const sampleTimerRef = useRef<number>(undefined);
+  const audioPlayerRef = useRef<HTMLAudioElement>(null);
 
   const [selected, setSelected] = useState<string[]>([]);
   const [name, setName] = useState("");
@@ -46,26 +50,74 @@ export function SosForm() {
     distanceKm: number | null;
   } | null>(null);
 
+  // Real Camera Recording State
   const [cameraOn, setCameraOn] = useState(false);
   const [camError, setCamError] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+
+  // Sample Video Playback State (Steady, Non-Blinking)
+  const [isPlayingSample, setIsPlayingSample] = useState(false);
+  const [sampleElapsed, setSampleElapsed] = useState(0);
+  const [audioMuted, setAudioMuted] = useState(false);
 
   const { coords, locState, districtName, locate } = useCitizenLocation();
 
   useEffect(() => {
     return () => {
       window.clearInterval(timerRef.current);
+      window.clearInterval(sampleTimerRef.current);
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+      }
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []);
+
+  // Sample video playback timer & audio synchronization
+  useEffect(() => {
+    if (isPlayingSample) {
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.muted = audioMuted;
+        audioPlayerRef.current.play().catch(() => {});
+      }
+      window.clearInterval(sampleTimerRef.current);
+      sampleTimerRef.current = window.setInterval(() => {
+        setSampleElapsed((prev) => {
+          if (prev >= 28) {
+            return 0; // loop
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    } else {
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+      }
+      window.clearInterval(sampleTimerRef.current);
+    }
+    return () => {
+      window.clearInterval(sampleTimerRef.current);
+    };
+  }, [isPlayingSample, audioMuted]);
+
+  useEffect(() => {
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.muted = audioMuted;
+    }
+  }, [audioMuted]);
 
   const toggleNeed = (label: string) =>
     setSelected((prev) =>
       prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]
     );
 
+  // Real Camera Recording Start (Direct device camera)
   const startCamera = async () => {
     setCamError(false);
+    setIsPlayingSample(false);
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
@@ -87,6 +139,12 @@ export function SosForm() {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     setCameraOn(false);
+  };
+
+  const toggleSamplePlay = () => {
+    if (cameraOn) stopCamera();
+    const willPlay = !isPlayingSample;
+    setIsPlayingSample(willPlay);
   };
 
   const submit = async () => {
@@ -117,6 +175,10 @@ export function SosForm() {
       const data = await res.json();
       localStorage.setItem("citizen_last_request", data.request.code);
       stopCamera();
+      setIsPlayingSample(false);
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+      }
       setResult({
         code: data.request.code,
         camp: data.routedToCamp,
@@ -135,17 +197,9 @@ export function SosForm() {
   if (result) {
     return (
       <div className="relative mx-auto min-h-dvh w-full max-w-[480px] bg-white shadow-xl">
-        <header className="flex items-center gap-3 px-5 pt-1">
-          <div className="leading-tight">
-            <Translated k="videoSosTitle" as="h1" className="font-display text-[17px] font-bold text-ink" />
-            <Translated k="recordSend" as="p" className="text-[11px] font-medium text-slate-500" />
-          </div>
-          <div className="ml-auto">
-            <LanguagePill />
-          </div>
-        </header>
+        <CitizenHeader title="Video SOS" subtitle="Disaster Emergency Dispatch" />
 
-        <main className="px-5 pb-12 pt-6">
+        <main className="px-5 pb-24 pt-6">
           <div className="flex flex-col items-center rounded-2xl border border-emerald-100 bg-emerald-50 px-5 py-8 text-center">
             <span className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/30">
               <IconCheck className="h-8 w-8" strokeWidth={3} />
@@ -190,32 +244,27 @@ export function SosForm() {
             <Translated k="sendAnother" />
           </button>
         </main>
+
+        <CitizenNav active="home" />
       </div>
     );
   }
 
   return (
     <div className="relative mx-auto min-h-dvh w-full max-w-[480px] bg-white shadow-xl">
+      <CitizenHeader title="Video SOS" subtitle="Flood Distress Video Dispatch" />
 
-      <header className="flex items-center gap-3 px-5 pt-1">
-        <Link
-          href="/sos"
-          aria-label="Back to SOS options"
-          className="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink"
-        >
-          <IconChevronLeft className="h-6 w-6" />
-        </Link>
-        <div className="leading-tight">
-          <Translated k="videoSosTitle" as="h1" className="font-display text-[17px] font-bold text-ink" />
-          <Translated k="recordSend" as="p" className="text-[11px] font-medium text-slate-500" />
-        </div>
-        <div className="ml-auto">
-          <LanguagePill />
-        </div>
-      </header>
+      {/* Flood Audio Source */}
+      <audio
+        ref={audioPlayerRef}
+        src="/audio/flood_sound.wav"
+        loop
+        preload="auto"
+        className="hidden"
+      />
 
-      <main className="pb-12">
-        <section className="px-5 pt-5">
+      <main className="pb-28">
+        <section className="px-5 pt-4">
           <div
             className={`flex items-center justify-between gap-3 rounded-2xl p-3.5 ${
               locState === "locating" ? "bg-sky-50" : "bg-emerald-50"
@@ -256,11 +305,13 @@ export function SosForm() {
           </div>
         </section>
 
+        {/* Video Player & Camera Section */}
         <section className="mt-6 px-5">
           <Translated k="recordVideoTitle" as="h2" className="font-display text-[16px] font-bold text-ink" />
           <Translated k="recordVideoDesc2" as="p" className="mt-1 text-[12px] text-slate-500" />
 
-          <div className="relative mt-3 aspect-video w-full overflow-hidden rounded-2xl bg-slate-200 shadow-sm">
+          {/* Video Viewport */}
+          <div className="relative mt-3 aspect-video w-full overflow-hidden rounded-2xl bg-slate-900 shadow-md">
             {cameraOn ? (
               <video
                 ref={videoRef}
@@ -269,33 +320,114 @@ export function SosForm() {
                 muted
                 className="h-full w-full object-cover"
               />
+            ) : isPlayingSample ? (
+              /* Authentic Emergency Video Recording Playback with Sound */
+              <div className="relative h-full w-full bg-slate-950 overflow-hidden">
+                {/* Natural Camera Panning Across Flood Waters */}
+                <div className="relative h-full w-full animate-emergency-video">
+                  <Image
+                    src="/images/sos_video_frame.png"
+                    alt="Sample flood emergency video"
+                    fill
+                    priority
+                    sizes="(max-width: 480px) 100vw, 480px"
+                    className="object-cover"
+                  />
+                </div>
+
+                {/* Viewfinder Reticle & Telemetry Overlays */}
+                <div className="absolute inset-0 pointer-events-none p-3 flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 rounded-full bg-red-600/90 px-2.5 py-1 text-[10.5px] font-bold text-white shadow-sm">
+                      <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
+                      REC · SOS FOOTAGE
+                    </span>
+                    <span className="rounded-md bg-black/60 px-2 py-0.5 text-[9.5px] font-mono font-semibold text-slate-200 backdrop-blur-xs">
+                      1080p · 30 FPS
+                    </span>
+                  </div>
+
+                  {/* Center Viewfinder Framing Crosshair */}
+                  <div className="self-center flex items-center justify-center opacity-40">
+                    <div className="h-6 w-6 border border-white/60 rounded-xs" />
+                  </div>
+
+                  <div className="flex items-center justify-between text-[10px] font-mono text-white/90 drop-shadow-md">
+                    <span>GPS: 24.656°N, 68.837°E</span>
+                    <span>AUDIO: 44.1kHz STEREO</span>
+                  </div>
+                </div>
+
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/40 flex flex-col justify-between p-3">
+                  <div className="flex items-center justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setAudioMuted((m) => !m)}
+                      aria-label={audioMuted ? "Unmute audio" : "Mute audio"}
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition shadow-sm"
+                    >
+                      {audioMuted ? <IconVolumeX className="h-3.5 w-3.5" /> : <IconVolume2 className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+
+                  {/* Play/Pause center toggle */}
+                  <button
+                    type="button"
+                    onClick={toggleSamplePlay}
+                    aria-label="Pause sample video"
+                    className="self-center flex h-12 w-12 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-xs border border-white/20 active:scale-95 transition hover:bg-black/80"
+                  >
+                    <span className="flex gap-1">
+                      <span className="h-4 w-1.5 bg-white rounded-xs" />
+                      <span className="h-4 w-1.5 bg-white rounded-xs" />
+                    </span>
+                  </button>
+
+                  <div>
+                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-200 mb-1">
+                      <span>Flood Sound &amp; Current Active</span>
+                      <span>{mmss(sampleElapsed)} / 00:28</span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-white/20 overflow-hidden">
+                      <div
+                        className="h-full bg-channel transition-all duration-300"
+                        style={{ width: `${(sampleElapsed / 28) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             ) : (
-              <Image
-                src="/images/sos_video_frame.png"
-                alt="Recorded video frame showing a flooded rural scene with a house and trees"
-                fill
-                priority
-                sizes="(max-width: 480px) 100vw, 480px"
-                className="object-cover"
-              />
+              /* Default Static Frame */
+              <div className="relative h-full w-full">
+                <Image
+                  src="/images/sos_video_frame.png"
+                  alt="Recorded video frame showing a flooded rural scene with a house and trees"
+                  fill
+                  priority
+                  sizes="(max-width: 480px) 100vw, 480px"
+                  className="object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={toggleSamplePlay}
+                  aria-label="Play sample video"
+                  className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-ink shadow-2xl transition hover:scale-105 active:scale-90"
+                >
+                  <IconPlayFilled className="ml-0.5 h-6 w-6 text-channel" />
+                </button>
+              </div>
             )}
-            <span className="absolute left-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold tabular-nums text-white shadow">
+
+            <span className="absolute left-2.5 top-2.5 flex h-8 min-w-[32px] px-2 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold tabular-nums text-white shadow">
               {cameraOn ? mmss(elapsed) : "00:28"}
             </span>
             <span className="absolute bottom-2.5 right-2.5 text-white drop-shadow-md">
               <IconMaximize className="h-[18px] w-[18px]" />
             </span>
-            {!cameraOn && (
-              <button
-                type="button"
-                aria-label="Play recorded video"
-                className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-ink shadow-xl transition active:scale-95"
-              >
-                <IconPlayFilled className="ml-0.5 h-6 w-6" />
-              </button>
-            )}
           </div>
 
+          {/* Clean Camera Recording Button (Original Simple Workflow) */}
           <button
             type="button"
             onClick={cameraOn ? stopCamera : startCamera}
@@ -317,52 +449,61 @@ export function SosForm() {
 
         <NeedsSelector selected={selected} onToggle={toggleNeed} />
 
+        {/* Citizen Contact Details Form */}
         <section className="mt-6 px-5">
-          <div className="flex flex-col gap-3">
+          <Translated k="yourDetails" as="h2" className="font-display text-[16px] font-bold text-ink" />
+
+          <div className="mt-3 flex flex-col gap-3">
             <label className="block">
-              <Translated k="yourName" as="span" className="text-[11px] font-semibold uppercase tracking-wide text-slate-500" />
+              <Translated k="fullName" as="span" className="text-[12px] font-semibold text-slate-700" />
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Fatima Bibi"
-                autoComplete="name"
-                className="mt-1.5 h-12 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-[14px] font-semibold text-ink outline-none transition placeholder:font-normal placeholder:text-slate-300 focus:border-channel focus:ring-2 focus:ring-sky-100"
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setFormError(false);
+                }}
+                placeholder="e.g. Fatima Bibi"
+                className="mt-1 h-12 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[14px] font-semibold text-ink outline-none transition focus:border-channel focus:ring-2 focus:ring-sky-100"
               />
             </label>
+
             <label className="block">
-              <Translated k="phoneLabel" as="span" className="text-[11px] font-semibold uppercase tracking-wide text-slate-500" />
+              <Translated k="phoneNumber" as="span" className="text-[12px] font-semibold text-slate-700" />
               <input
                 type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => {
+                  setPhone(e.target.value);
+                  setFormError(false);
+                }}
                 placeholder="0300 1234567"
-                autoComplete="tel"
-                className="mt-1.5 h-12 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-[14px] font-semibold tabular-nums text-ink outline-none transition placeholder:font-normal placeholder:text-slate-300 focus:border-channel focus:ring-2 focus:ring-sky-100"
+                className="mt-1 h-12 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[14px] font-semibold text-ink outline-none transition focus:border-channel focus:ring-2 focus:ring-sky-100"
               />
             </label>
+
             <label className="block">
-              <Translated k="peopleLabel" as="span" className="text-[11px] font-semibold uppercase tracking-wide text-slate-500" />
+              <Translated k="peopleCount" as="span" className="text-[12px] font-semibold text-slate-700" />
               <input
                 type="number"
                 min={1}
+                max={50}
                 value={people}
                 onChange={(e) => setPeople(e.target.value)}
-                className="mt-1.5 h-12 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-[14px] font-bold tabular-nums text-ink outline-none transition focus:border-channel focus:ring-2 focus:ring-sky-100"
+                className="mt-1 h-12 w-full rounded-2xl border border-slate-200 bg-white px-3.5 text-[14px] font-semibold text-ink outline-none transition focus:border-channel focus:ring-2 focus:ring-sky-100"
               />
             </label>
           </div>
-        </section>
 
-        <section className="mt-6 px-5">
-          <div className="flex items-start gap-3 rounded-2xl bg-amber-50 p-3.5">
-            <IconInfo className="mt-0.5 h-[18px] w-[18px] shrink-0 text-amber-500" />
-            <Translated k="sosNote" as="p" className="text-[12px] leading-[1.5] text-amber-900" />
-          </div>
+          {formError && (
+            <p className="mt-3 rounded-xl bg-red-50 px-3.5 py-2 text-[12px] font-medium text-red-600">
+              <Translated k="fillRequired" />
+            </p>
+          )}
 
-          {(formError || sendError) && (
-            <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-[12px] font-semibold text-red-600">
-              <Translated k={formError ? "formError" : "sendFailed"} />
+          {sendError && (
+            <p className="mt-3 rounded-xl bg-red-50 px-3.5 py-2 text-[12px] font-medium text-red-600">
+              <Translated k="sendFailed" />
             </p>
           )}
 
@@ -370,14 +511,15 @@ export function SosForm() {
             type="button"
             onClick={submit}
             disabled={sending}
-            className="mt-4 flex h-[54px] w-full items-center justify-center gap-2.5 rounded-full bg-ink text-[15px] font-bold text-white shadow-lg shadow-ink/25 transition active:scale-[0.98] disabled:opacity-60"
+            className="mt-5 flex h-[54px] w-full items-center justify-center gap-2 rounded-full bg-red-600 text-[15px] font-bold text-white shadow-lg shadow-red-600/30 transition active:scale-[0.98] disabled:opacity-60"
           >
             <IconSend className="h-5 w-5" />
-            <Translated k={sending ? "sending" : "sendSosBtn"} />
+            {sending ? <Translated k="sendingSos" /> : <Translated k="sendSosNow" />}
           </button>
-          <Translated k="safetyPolicy" as="p" className="mt-2.5 text-center text-[11px] text-slate-400" />
         </section>
       </main>
+
+      <CitizenNav active="home" />
     </div>
   );
 }

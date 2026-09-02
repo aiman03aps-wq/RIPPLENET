@@ -54,7 +54,7 @@ export default function RouteMapInner({
       zoomControl={false}
       scrollWheelZoom={false}
       attributionControl
-      className="h-full w-full"
+      className="h-full w-full relative z-[1] isolate"
     >
       <TileLayer
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"

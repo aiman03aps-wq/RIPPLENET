@@ -30,6 +30,7 @@ import { fetchRoute } from "../../../lib/osrm";
 import { haversineKm } from "../../../lib/geo";
 import { AgentReasoningCard } from "../../components/agent-reasoning-card";
 import { runMultiAgentPipeline } from "../../../lib/agents";
+import { fetchRainfall } from "../../../lib/weather";
 import { displayPriority, formatFullDate, parseNeeds, suggestParcel } from "../../../lib/needs";
 
 export const dynamic = "force-dynamic";
@@ -132,9 +133,10 @@ export default async function RequestDetailsPage(props: { params: Promise<{ id: 
   const parcel = suggestParcel(needs, request.type);
   const pill = statusPills[request.status] ?? statusPills.pending;
 
-  const route = camp
-    ? await fetchRoute({ lat: camp.lat, lng: camp.lng }, { lat: request.lat, lng: request.lng })
-    : null;
+  const [route, liveRainfall] = await Promise.all([
+    camp ? fetchRoute({ lat: camp.lat, lng: camp.lng }, { lat: request.lat, lng: request.lng }) : null,
+    fetchRainfall({ lat: request.lat, lng: request.lng }),
+  ]);
   const distanceKm =
     route?.distanceKm ??
     (camp
@@ -163,8 +165,16 @@ export default async function RequestDetailsPage(props: { params: Promise<{ id: 
         })
       : [],
   ]);
-  const activeMap = new Map(activeCounts.map((g) => [g.volunteerId, g._count._all]));
-  const totalMap = new Map(totalCounts.map((g) => [g.volunteerId, g._count._all]));
+  
+  const activeMap = new Map<number, number>();
+  for (const a of activeCounts) {
+    if (a.volunteerId != null) activeMap.set(a.volunteerId, a._count._all);
+  }
+  const totalMap = new Map<number, number>();
+  for (const t of totalCounts) {
+    if (t.volunteerId != null) totalMap.set(t.volunteerId, t._count._all);
+  }
+
   const assignable: AssignableVolunteer[] = volunteers.map((v) => ({
     id: v.id,
     name: v.name,
@@ -209,11 +219,17 @@ export default async function RequestDetailsPage(props: { params: Promise<{ id: 
     type: request.type,
     peopleCount: request.peopleCount,
     district: request.district,
+    lat: request.lat,
+    lng: request.lng,
     campName: camp?.name ?? "Alkhidmat Camp",
     volunteerName: request.volunteer?.name,
     routeDistanceKm: distanceKm,
     routeDurationMin: etaMin,
     routeVia: route?.viaName,
+    rainfall24h: liveRainfall.last24hMm,
+    rainfall7d: liveRainfall.last7dMm,
+    currentRainfallRate: liveRainfall.currentMmH,
+    weatherSource: liveRainfall.source,
   });
 
   return (

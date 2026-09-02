@@ -17,6 +17,7 @@ import {
   IconX,
 } from "../../components/icons";
 import { AdminNav } from "../components/admin-nav";
+import { AdminHeader } from "../components/admin-header";
 
 type Tab = "complaints" | "reports";
 type Filter = "All" | "New" | "In Progress" | "Resolved";
@@ -369,15 +370,7 @@ export function ComplaintsReportsClient({
 
   return (
     <div className="relative mx-auto min-h-dvh w-full max-w-[480px] bg-white pb-[74px] shadow-xl">
-      <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-slate-100 bg-white px-5">
-        <button className="flex h-10 w-10 items-center justify-center rounded-lg text-ink transition active:scale-95">
-          <IconMenu className="h-6 w-6" strokeWidth={2.2} />
-        </button>
-        <h1 className="absolute left-1/2 -translate-x-1/2 font-display text-[17px] font-bold text-ink">
-          Complaints & Reports
-        </h1>
-        <div className="h-10 w-10" />
-      </header>
+      <AdminHeader title="Complaints & Reports" subtitle="Accountability & Intelligence" />
 
       <main className="px-5 pt-4">
         <div className="flex rounded-2xl bg-slate-100 p-1">
@@ -468,12 +461,12 @@ export function ComplaintsReportsClient({
       </main>
 
       {resolveId != null && resolving && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 backdrop-blur-[2px]">
+        <div className="fixed inset-0 z-[90] flex items-end justify-center bg-ink/50 backdrop-blur-xs">
           <div
             role="dialog"
             aria-modal="true"
             aria-label="Resolve complaint"
-            className="w-full max-w-[480px] rounded-t-3xl bg-paper px-5 pb-8 pt-5 shadow-2xl"
+            className="w-full max-w-[480px] max-h-[85vh] overflow-y-auto rounded-t-3xl bg-white px-5 pb-28 pt-6 shadow-2xl animate-slide-up"
           >
             <div className="flex items-center justify-between">
               <h2 className="font-display text-[18px] font-bold tracking-tight text-ink">

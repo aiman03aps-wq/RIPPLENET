@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { IconMenu, IconShieldPin } from "../components/icons";
-import { Logo } from "../components/logo";
+import { IconShieldPin } from "../components/icons";
+import { CitizenHeader } from "../components/citizen-header";
 import { CitizenNav } from "../components/citizen-nav";
 import { LanguageProvider } from "../components/language-context";
-import { Translated, LanguagePill } from "../components/citizen-translated";
+import { Translated } from "../components/citizen-translated";
 import { SosChannelsClient } from "./sos-channels-client";
 
 export const metadata: Metadata = {
@@ -14,23 +14,7 @@ export default function SosPage() {
   return (
     <LanguageProvider>
       <div className="relative mx-auto min-h-dvh w-full max-w-[480px] bg-white shadow-xl">
-        <header className="flex items-center gap-3 px-5 pt-1">
-          <Logo className="h-11 w-11" />
-          <div className="leading-tight">
-            <p className="font-display text-[17px] font-bold text-ink">RippleNet AI</p>
-            <p className="text-[11px] font-medium text-slate-500">Alkhidmat Flood Relief</p>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <LanguagePill />
-            <button
-              type="button"
-              aria-label="Open menu"
-              className="flex h-10 w-10 items-center justify-center rounded-full text-ink"
-            >
-              <IconMenu className="h-[22px] w-[22px]" />
-            </button>
-          </div>
-        </header>
+        <CitizenHeader />
 
         <main className="pb-[110px]">
           <section className="px-5 pt-6">

@@ -36,3 +36,41 @@ body {
 .animate-slide-up {
   animation: slide-up 0.25s ease-out;
 }
+
+@keyframes slide-right {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-right {
+  animation: slide-right 0.25s ease-out;
+}
+
+/* Realistic Emergency SOS Video Pan & Natural Handheld Motion */
+@keyframes emergency-video-pan {
+  0% {
+    transform: scale(1.14) translate3d(-3%, 2%, 0);
+  }
+  25% {
+    transform: scale(1.18) translate3d(2.5%, -1.5%, 0);
+  }
+  50% {
+    transform: scale(1.13) translate3d(4%, 2.5%, 0);
+  }
+  75% {
+    transform: scale(1.19) translate3d(-1.5%, -2%, 0);
+  }
+  100% {
+    transform: scale(1.14) translate3d(-3%, 2%, 0);
+  }
+}
+
+.animate-emergency-video {
+  animation: emergency-video-pan 10s ease-in-out infinite alternate;
+}

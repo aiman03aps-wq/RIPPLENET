@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AuthGuard } from "../../components/auth-guard";
-import { IconBell } from "../../components/icons";
+import { NotificationBell } from "../../components/notification-bell";
 import { VolunteerNav } from "../../components/volunteer-nav";
 import { TaskList, type Task } from "./task-list";
 import { prisma } from "../../../lib/db";
@@ -58,17 +58,7 @@ export default async function VolunteerTasksPage() {
             {camp ? `${camp.district} Health Camp` : "Relief Camp"}
           </p>
         </div>
-        <div
-          className="relative ml-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink"
-          aria-label={`${activeCount} active tasks`}
-        >
-          <IconBell className="h-[22px] w-[22px]" />
-          {activeCount > 0 && (
-            <span className="absolute right-0 top-0 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-red-500 px-1 text-[9.5px] font-bold text-white shadow-sm">
-              {activeCount}
-            </span>
-          )}
-        </div>
+        <NotificationBell role="volunteer" />
       </header>
 
       <main className="pb-[110px]">

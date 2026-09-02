@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { CitizenHeader } from "../components/citizen-header";
 import { CitizenNav } from "../components/citizen-nav";
 import { LanguageProvider } from "../components/language-context";
-import { Translated, LanguagePill } from "../components/citizen-translated";
+import { Translated } from "../components/citizen-translated";
 import { RouteMap } from "../components/route-map";
 import { NearbyCamps } from "../components/nearby-camps";
 import {
@@ -18,6 +19,7 @@ import { fetchRoute } from "../../lib/osrm";
 import { haversineKm } from "../../lib/geo";
 import { formatFullDate, parseNeeds } from "../../lib/needs";
 import { runMultiAgentPipeline } from "../../lib/agents";
+import { fetchRainfall } from "../../lib/weather";
 import { CopyRequestId } from "./copy-request-id";
 import { TrackSearch } from "./track-search";
 import { StatusRefresher } from "./status-refresher";
@@ -92,13 +94,13 @@ export default async function StatusPage(props: {
   const shell = (children: React.ReactNode) => (
     <LanguageProvider>
       <div className="relative mx-auto min-h-dvh w-full max-w-[480px] bg-paper shadow-xl">
+        <CitizenHeader title="Track Request" subtitle="Live Dispatch Telemetry" />
 
-        <header className="flex items-center justify-between px-5 pt-2">
+        <header className="px-5 pt-4">
           <div className="leading-tight">
             <Translated k="myRequest" as="h1" className="font-display text-[22px] font-bold tracking-tight text-ink" />
             <Translated k="trackSos" as="p" className="mt-0.5 text-[12px] font-medium text-slate-500" />
           </div>
-          <LanguagePill />
         </header>
 
         <main className="pb-[110px]">{children}</main>
@@ -207,13 +209,17 @@ export default async function StatusPage(props: {
   if (!request) return shell(<TrackSearch notFound />);
 
   const camp = request.camp;
-  const route = camp ? await fetchRoute({ lat: camp.lat, lng: camp.lng }, { lat: request.lat, lng: request.lng }) : null;
+  const [route, liveRainfall] = await Promise.all([
+    camp ? fetchRoute({ lat: camp.lat, lng: camp.lng }, { lat: request.lat, lng: request.lng }) : null,
+    fetchRainfall({ lat: request.lat, lng: request.lng }),
+  ]);
+
   const distanceKm =
     route?.distanceKm ??
     (camp ? Math.round(haversineKm({ lat: camp.lat, lng: camp.lng }, { lat: request.lat, lng: request.lng }) * 10) / 10 : null);
   const etaMin = route?.durationMin ?? null;
   const live = request.status !== "resolved" && request.status !== "cancelled";
-    const stepInfo = statusSteps[request.status];
+  const stepInfo = statusSteps[request.status];
   const needsList = parseNeeds(request.needs);
 
   const pipeline = runMultiAgentPipeline({
@@ -224,11 +230,17 @@ export default async function StatusPage(props: {
     type: request.type,
     peopleCount: request.peopleCount,
     district: request.district,
+    lat: request.lat,
+    lng: request.lng,
     campName: camp?.name,
     volunteerName: request.volunteer?.name,
     routeDistanceKm: distanceKm,
     routeDurationMin: etaMin,
     routeVia: route?.viaName,
+    rainfall24h: liveRainfall.last24hMm,
+    rainfall7d: liveRainfall.last7dMm,
+    currentRainfallRate: liveRainfall.currentMmH,
+    weatherSource: liveRainfall.source,
   });
 
   return shell(
@@ -341,27 +353,56 @@ export default async function StatusPage(props: {
         </section>
       )}
 
-      {camp && (
-        <section className="mt-7 px-5">
-          <Translated k="contactCard" as="h2" className="font-display text-[19px] font-bold tracking-tight text-ink" />
-          <div className="mt-3.5 flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-            <div className="min-w-0 flex-1 leading-tight">
-              <Translated k="nearestCamp" as="p" className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400" />
-              <h3 className="mt-1 font-display text-[15px] font-bold text-ink">{camp.name}</h3>
-              <a href={`tel:${camp.phone.replace(/\s+/g, "")}`} className="mt-1 block text-[13px] font-bold text-channel">
-                {camp.phone}
+      {/* Contact Cards - Layered in front of map with z-10 */}
+      <section className="relative z-10 mt-7 px-5">
+        <Translated k="contactCard" as="h2" className="font-display text-[19px] font-bold tracking-tight text-ink" />
+
+        <div className="mt-3.5 space-y-3">
+          {request.volunteer && (
+            <div className="flex items-center gap-3 rounded-2xl border border-sky-100 bg-white p-4 shadow-md shadow-sky-950/5">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sky-50 text-channel">
+                <IconPhone className="h-5 w-5" />
+              </span>
+              <div className="min-w-0 flex-1 leading-tight">
+                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-channel">Assigned Relief Volunteer</p>
+                <h3 className="mt-1 font-display text-[15px] font-bold text-ink">{request.volunteer.name}</h3>
+                <a href={`tel:${request.volunteer.phone?.replace(/\s+/g, "") ?? "03001234567"}`} className="mt-1 block text-[12px] font-bold text-slate-500">
+                  {request.volunteer.phone ?? "0300 1234567"}
+                </a>
+              </div>
+              <a
+                href={`tel:${request.volunteer.phone?.replace(/\s+/g, "") ?? "03001234567"}`}
+                className="flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-channel px-4 text-[12.5px] font-bold text-white shadow-md shadow-channel/30 transition active:scale-[0.98]"
+              >
+                <IconPhone className="h-3.5 w-3.5" />
+                <Translated k="call" />
               </a>
             </div>
-            <a
-              href={`tel:${camp.phone.replace(/\s+/g, "")}`}
-              className="flex h-11 shrink-0 items-center gap-2 rounded-full bg-ink px-5 text-[13px] font-semibold text-white shadow-lg shadow-ink/25 transition active:scale-[0.98]"
-            >
-              <IconPhone className="h-4 w-4" />
-              <Translated k="call" />
-            </a>
-          </div>
-        </section>
-      )}
+          )}
+
+          {camp && (
+            <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-md shadow-slate-900/5">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-700">
+                <IconPhone className="h-5 w-5" />
+              </span>
+              <div className="min-w-0 flex-1 leading-tight">
+                <Translated k="nearestCamp" as="p" className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400" />
+                <h3 className="mt-1 font-display text-[15px] font-bold text-ink">{camp.name}</h3>
+                <a href={`tel:${camp.phone.replace(/\s+/g, "")}`} className="mt-1 block text-[12px] font-bold text-slate-500">
+                  {camp.phone}
+                </a>
+              </div>
+              <a
+                href={`tel:${camp.phone.replace(/\s+/g, "")}`}
+                className="flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-ink px-4 text-[12.5px] font-bold text-white shadow-md shadow-ink/20 transition active:scale-[0.98]"
+              >
+                <IconPhone className="h-3.5 w-3.5" />
+                <Translated k="call" />
+              </a>
+            </div>
+          )}
+        </div>
+      </section>
 
       <section className="mt-4 px-5">
         <a

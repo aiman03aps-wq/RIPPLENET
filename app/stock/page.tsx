@@ -58,10 +58,10 @@ export default async function StockPage() {
         </p>
       </header>
 
-      <main className="pb-[110px]">
+      <main className="pb-36">
         <StockList items={items} restocks={restockViews} />
 
-        <section className="mt-6 px-5">
+        <section className="mt-8 px-5 pb-10">
           <RequestRestockButton itemNames={items.map((i) => i.name)} />
         </section>
       </main>
