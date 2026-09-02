@@ -195,7 +195,7 @@ export function AdminHeader({
               >
                 <span className="flex items-center gap-2">
                   <IconHome className="h-4 w-4 text-slate-600" />
-                  Citizen Landing Page
+                  Citizen Portal (Home)
                 </span>
                 <IconChevronRight className="h-3 w-3 text-slate-400" />
               </Link>

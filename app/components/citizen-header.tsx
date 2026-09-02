@@ -104,7 +104,7 @@ export function CitizenHeader({
               >
                 <span className="flex items-center gap-2.5">
                   <IconHome className="h-4 w-4 text-channel" />
-                  Landing Page
+                  {t("home") || "Home"}
                 </span>
                 <IconChevronRight className="h-3.5 w-3.5 text-slate-400" />
               </Link>
