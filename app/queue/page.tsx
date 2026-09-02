@@ -59,7 +59,7 @@ export default async function QueuePage() {
           </h1>
           <IconChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
         </div>
-        <NotificationBell count={pendingCount} />
+        <NotificationBell role="camp_manager" />
       </header>
 
       <main className="pb-[110px]">

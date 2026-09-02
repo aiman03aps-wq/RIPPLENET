@@ -23,17 +23,87 @@ export interface NotificationItem {
   read?: boolean;
 }
 
-const defaultNotifications: NotificationItem[] = [
+const adminNotifications: NotificationItem[] = [
   {
-    id: "notif-1",
+    id: "admin-notif-1",
+    title: "Critical SOS: Infant Dehydration",
+    message: "RIP-2026-00001 · High-priority emergency in Thatta District.",
+    time: "2m ago",
+    type: "critical",
+    link: "/admin/dashboard",
+  },
+  {
+    id: "admin-notif-2",
+    title: "Indus Basin Flood Inundation",
+    message: "Flood Agent: River Indus runoff surged +35mm in Sukkur & Dadu sectors.",
+    time: "14m ago",
+    type: "warning",
+    link: "/admin/camps",
+  },
+  {
+    id: "admin-notif-3",
+    title: "New Restock Request Pending",
+    message: "Badin Relief Camp requested 50 units of RippleNet Water Purification Kits.",
+    time: "32m ago",
+    type: "warning",
+    link: "/admin/restock",
+  },
+  {
+    id: "admin-notif-4",
+    title: "Citizen Complaint Logged",
+    message: "Delivery delay reported in Nowshera Camp sector 4.",
+    time: "1h ago",
+    type: "info",
+    link: "/admin/complaints",
+  },
+];
+
+const volunteerNotifications: NotificationItem[] = [
+  {
+    id: "vol-notif-1",
+    title: "Emergency Delivery Assigned",
+    message: "RIP-2026-00001 · Urgent Infant Rehydration Kit assigned to you for dispatch.",
+    time: "3m ago",
+    type: "critical",
+    link: "/volunteer/tasks",
+  },
+  {
+    id: "vol-notif-2",
+    title: "Route Advisory: Submerged Road",
+    message: "Route Agent: Badin North road cut. Follow alternate bypass route.",
+    time: "18m ago",
+    type: "warning",
+    link: "/volunteer/support",
+  },
+  {
+    id: "vol-notif-3",
+    title: "Delivery Proof Verified",
+    message: "Your delivery for RIP-2026-00002 has been verified and logged in history.",
+    time: "45m ago",
+    type: "success",
+    link: "/volunteer/history",
+  },
+  {
+    id: "vol-notif-4",
+    title: "Base Camp Hotline Active",
+    message: "Disaster coordinator and medical triage desk available 24/7.",
+    time: "2h ago",
+    type: "info",
+    link: "/volunteer/support",
+  },
+];
+
+const campManagerNotifications: NotificationItem[] = [
+  {
+    id: "mgr-notif-1",
     title: "Critical SOS: Infant Dehydration",
     message: "RIP-2026-00001 · Village Jam Goth requires urgent ORS & Zinc therapy dispatch.",
     time: "2m ago",
     type: "critical",
-    link: "/queue/1",
+    link: "/queue",
   },
   {
-    id: "notif-2",
+    id: "mgr-notif-2",
     title: "Flood Inundation Warning",
     message: "Flood Agent: River Indus basin runoff surged +35mm. Bypass route recommended.",
     time: "14m ago",
@@ -41,7 +111,7 @@ const defaultNotifications: NotificationItem[] = [
     link: "/queue",
   },
   {
-    id: "notif-3",
+    id: "mgr-notif-3",
     title: "Restock Request Approved",
     message: "Admin HQ approved 50 units of RippleNet Water Purification Kits for delivery.",
     time: "45m ago",
@@ -49,7 +119,7 @@ const defaultNotifications: NotificationItem[] = [
     link: "/stock",
   },
   {
-    id: "notif-4",
+    id: "mgr-notif-4",
     title: "Volunteer Check-In",
     message: "Hamza Khan reached delivery perimeter for RIP-2026-00002 safely.",
     time: "1h ago",
@@ -58,9 +128,20 @@ const defaultNotifications: NotificationItem[] = [
   },
 ];
 
-export function NotificationBell({ count = 3 }: { count?: number }) {
+export function NotificationBell({
+  role = "camp_manager",
+}: {
+  role?: "admin" | "camp_manager" | "volunteer";
+}) {
   const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>(defaultNotifications);
+  const initialNotifications =
+    role === "admin"
+      ? adminNotifications
+      : role === "volunteer"
+      ? volunteerNotifications
+      : campManagerNotifications;
+
+  const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 

@@ -287,7 +287,7 @@ export function LoginForm() {
         className="mt-3 flex items-center justify-center gap-1.5 text-[12.5px] font-semibold text-channel"
       >
         <IconShield className="h-4 w-4" />
-        Secure authenticated session with RippleNet
+        Secure login with Alkhidmat
       </a>
     </div>
   );

@@ -261,7 +261,7 @@ export default async function AdminDashboardPage() {
           RippleNet AI Admin
         </p>
         <div className="flex items-center gap-2.5">
-          <NotificationBell count={alertCount} />
+          <NotificationBell role="admin" />
           <Image
             src="/images/avatar_ali.png"
             alt="Admin profile"
