@@ -34,8 +34,7 @@ export function SosForm() {
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<number>(undefined);
   const sampleTimerRef = useRef<number>(undefined);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const audioSourceRef = useRef<AudioNode | null>(null);
+  const audioPlayerRef = useRef<HTMLAudioElement>(null);
 
   const [selected, setSelected] = useState<string[]>([]);
   const [name, setName] = useState("");
@@ -63,88 +62,24 @@ export function SosForm() {
 
   const { coords, locState, districtName, locate } = useCitizenLocation();
 
-  // Multi-layered Rushing Flood Water Ambient Sound Generator
-  async function startFloodAudio() {
-    try {
-      if (audioMuted) return;
-      const AudioCtx =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (!AudioCtx) return;
-
-      stopFloodAudio();
-
-      const ctx = new AudioCtx();
-      if (ctx.state === "suspended") {
-        await ctx.resume();
-      }
-      audioCtxRef.current = ctx;
-
-      const bufferSize = ctx.sampleRate * 3;
-      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const output = noiseBuffer.getChannelData(0);
-      let lastOut = 0.0;
-
-      for (let i = 0; i < bufferSize; i++) {
-        const white = Math.random() * 2 - 1;
-        // Turbulent brownian noise + high frequency splash
-        lastOut = (lastOut + 0.02 * white) / 1.02;
-        output[i] = lastOut * 3.6 + white * 0.28;
-      }
-
-      const noiseSource = ctx.createBufferSource();
-      noiseSource.buffer = noiseBuffer;
-      noiseSource.loop = true;
-
-      // Filter 1: Resonant water body peak
-      const peaking = ctx.createBiquadFilter();
-      peaking.type = "peaking";
-      peaking.frequency.setValueAtTime(360, ctx.currentTime);
-      peaking.gain.setValueAtTime(7, ctx.currentTime);
-      peaking.Q.setValueAtTime(1.8, ctx.currentTime);
-
-      // Filter 2: Low-pass rushing surge
-      const lowPass = ctx.createBiquadFilter();
-      lowPass.type = "lowpass";
-      lowPass.frequency.setValueAtTime(750, ctx.currentTime);
-
-      const masterGain = ctx.createGain();
-      masterGain.gain.setValueAtTime(0.28, ctx.currentTime);
-
-      noiseSource.connect(peaking);
-      peaking.connect(lowPass);
-      lowPass.connect(masterGain);
-      masterGain.connect(ctx.destination);
-
-      noiseSource.start();
-      audioSourceRef.current = noiseSource;
-    } catch {
-      // Audio autoplay permission fallback
-    }
-  }
-
-  function stopFloodAudio() {
-    try {
-      if (audioCtxRef.current) {
-        audioCtxRef.current.close();
-        audioCtxRef.current = null;
-        audioSourceRef.current = null;
-      }
-    } catch {}
-  }
-
   useEffect(() => {
     return () => {
       window.clearInterval(timerRef.current);
       window.clearInterval(sampleTimerRef.current);
-      stopFloodAudio();
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+      }
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []);
 
-  // Sample video playback timer
+  // Sample video playback timer & audio synchronization
   useEffect(() => {
     if (isPlayingSample) {
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.muted = audioMuted;
+        audioPlayerRef.current.play().catch(() => {});
+      }
       window.clearInterval(sampleTimerRef.current);
       sampleTimerRef.current = window.setInterval(() => {
         setSampleElapsed((prev) => {
@@ -155,14 +90,21 @@ export function SosForm() {
         });
       }, 1000);
     } else {
-      stopFloodAudio();
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+      }
       window.clearInterval(sampleTimerRef.current);
     }
     return () => {
-      stopFloodAudio();
       window.clearInterval(sampleTimerRef.current);
     };
   }, [isPlayingSample, audioMuted]);
+
+  useEffect(() => {
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.muted = audioMuted;
+    }
+  }, [audioMuted]);
 
   const toggleNeed = (label: string) =>
     setSelected((prev) =>
@@ -173,7 +115,9 @@ export function SosForm() {
   const startCamera = async () => {
     setCamError(false);
     setIsPlayingSample(false);
-    stopFloodAudio();
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
@@ -197,15 +141,10 @@ export function SosForm() {
     setCameraOn(false);
   };
 
-  const toggleSamplePlay = async () => {
+  const toggleSamplePlay = () => {
     if (cameraOn) stopCamera();
     const willPlay = !isPlayingSample;
     setIsPlayingSample(willPlay);
-    if (willPlay && !audioMuted) {
-      await startFloodAudio();
-    } else {
-      stopFloodAudio();
-    }
   };
 
   const submit = async () => {
@@ -237,7 +176,9 @@ export function SosForm() {
       localStorage.setItem("citizen_last_request", data.request.code);
       stopCamera();
       setIsPlayingSample(false);
-      stopFloodAudio();
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.pause();
+      }
       setResult({
         code: data.request.code,
         camp: data.routedToCamp,
@@ -312,6 +253,15 @@ export function SosForm() {
   return (
     <div className="relative mx-auto min-h-dvh w-full max-w-[480px] bg-white shadow-xl">
       <CitizenHeader title="Video SOS" subtitle="Flood Distress Video Dispatch" />
+
+      {/* Flood Audio Source */}
+      <audio
+        ref={audioPlayerRef}
+        src="/audio/flood_sound.wav"
+        loop
+        preload="auto"
+        className="hidden"
+      />
 
       <main className="pb-28">
         <section className="px-5 pt-4">
@@ -388,12 +338,7 @@ export function SosForm() {
                     </span>
                     <button
                       type="button"
-                      onClick={() => {
-                        const next = !audioMuted;
-                        setAudioMuted(next);
-                        if (next) stopFloodAudio();
-                        else startFloodAudio();
-                      }}
+                      onClick={() => setAudioMuted((m) => !m)}
                       aria-label={audioMuted ? "Unmute audio" : "Mute audio"}
                       className="flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition"
                     >
@@ -416,7 +361,7 @@ export function SosForm() {
 
                   <div>
                     <div className="flex items-center justify-between text-[10px] font-mono text-slate-200 mb-1">
-                      <span>Flood Audio Active</span>
+                      <span>Flood Sound Active</span>
                       <span>{mmss(sampleElapsed)} / 00:28</span>
                     </div>
                     <div className="h-1.5 w-full rounded-full bg-white/20 overflow-hidden">
