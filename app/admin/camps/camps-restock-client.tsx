@@ -88,6 +88,8 @@ export function CampsRestockClient({
   restocks: RestockView[];
 }) {
   const router = useRouter();
+  const [campsList, setCampsList] = useState<CampView[]>(camps);
+  const [restocksList, setRestocksList] = useState<RestockView[]>(restocks);
   const [activeTab, setActiveTab] = useState<Tab>(defaultTab);
   const [query, setQuery] = useState("");
   const [districtFilter, setDistrictFilter] = useState("");
@@ -104,16 +106,16 @@ export function CampsRestockClient({
   const [sheetError, setSheetError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
 
-  const pendingCount = restocks.filter((r) => r.status === "pending").length;
+  const pendingCount = restocksList.filter((r) => r.status === "pending").length;
 
   const districts = useMemo(
-    () => [...new Set(camps.map((c) => c.district))].sort(),
-    [camps],
+    () => [...new Set(campsList.map((c) => c.district))].sort(),
+    [campsList],
   );
 
   const filteredCamps = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return camps.filter((c) => {
+    return campsList.filter((c) => {
       const matchesDistrict = !districtFilter || c.district === districtFilter;
       const matchesQuery =
         !q ||
@@ -122,11 +124,11 @@ export function CampsRestockClient({
         c.province.toLowerCase().includes(q);
       return matchesDistrict && matchesQuery;
     });
-  }, [camps, query, districtFilter]);
+  }, [campsList, query, districtFilter]);
 
   const filteredRestocks = useMemo(() => {
     const q = restockQuery.trim().toLowerCase();
-    return restocks.filter((r) => {
+    return restocksList.filter((r) => {
       const matchesPriority = !priorityFilter || r.priority === priorityFilter;
       const matchesQuery =
         !q ||
@@ -135,14 +137,14 @@ export function CampsRestockClient({
         r.code.toLowerCase().includes(q);
       return matchesPriority && matchesQuery;
     });
-  }, [restocks, restockQuery, priorityFilter]);
+  }, [restocksList, restockQuery, priorityFilter]);
 
   const recentRestocks = useMemo(
     () =>
-      [...restocks]
+      [...restocksList]
         .sort((a, b) => Number(a.status === "fulfilled") - Number(b.status === "fulfilled"))
         .slice(0, 4),
-    [restocks],
+    [restocksList],
   );
 
   const provinces = useMemo(
@@ -153,18 +155,26 @@ export function CampsRestockClient({
   async function updateRestock(id: number, status: "approved" | "fulfilled") {
     setBusyId(id);
     setActionError(null);
-    const res = await fetch("/api/restock", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setBusyId(null);
-    if (!res.ok) {
-      setActionError(data.error ?? "Failed to update request");
-      return;
+    try {
+      const res = await fetch("/api/restock", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error ?? "Failed to update request");
+      }
+      setRestocksList((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, status } : r))
+      );
+    } catch (err: unknown) {
+      console.error("updateRestock error:", err);
+      setActionError(err instanceof Error ? err.message : "Failed to update request");
+    } finally {
+      setBusyId(null);
+      router.refresh();
     }
-    router.refresh();
   }
 
   async function submitCamp() {
@@ -174,28 +184,44 @@ export function CampsRestockClient({
     }
     setAdding(true);
     setSheetError(null);
-    const res = await fetch("/api/camps", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: newCampName,
-        district: newCampDistrict,
-        phone: newCampPhone,
-        capacity: Number(newCampCapacity),
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setAdding(false);
-    if (!res.ok) {
-      setSheetError(data.error ?? "Failed to add camp");
-      return;
+    try {
+      const res = await fetch("/api/camps", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newCampName.trim(),
+          district: newCampDistrict,
+          phone: newCampPhone.trim() || "0800 22677",
+          capacity: Number(newCampCapacity) || 100,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error ?? "Failed to add camp");
+      }
+      const addedCamp: CampView = {
+        id: data.camp?.id ?? Date.now(),
+        name: data.camp?.name ?? newCampName.trim(),
+        district: data.camp?.district ?? newCampDistrict,
+        province: data.camp?.province ?? "Sindh",
+        status: "open",
+        requestCount: 0,
+        volunteerCount: 0,
+        stockStatus: "Good",
+      };
+      setCampsList((prev) => [addedCamp, ...prev]);
+      setSheetOpen(false);
+      setNewCampName("");
+      setNewCampDistrict("");
+      setNewCampPhone("");
+      setNewCampCapacity("100");
+    } catch (err: unknown) {
+      console.error("submitCamp error:", err);
+      setSheetError(err instanceof Error ? err.message : "Failed to add camp");
+    } finally {
+      setAdding(false);
+      router.refresh();
     }
-    setSheetOpen(false);
-    setNewCampName("");
-    setNewCampDistrict("");
-    setNewCampPhone("");
-    setNewCampCapacity("100");
-    router.refresh();
   }
 
   function renderRestockCard(req: RestockView) {
