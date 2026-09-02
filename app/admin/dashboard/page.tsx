@@ -21,6 +21,7 @@ import {
   IconWaterKit,
 } from "../../components/icons";
 import { AdminNav } from "../components/admin-nav";
+import { AdminHeader } from "../components/admin-header";
 import { prisma } from "../../../lib/db";
 import { getSession } from "../../../lib/session";
 import { assessRisk } from "../../../lib/risk";
@@ -249,28 +250,7 @@ export default async function AdminDashboardPage() {
   return (
     <AuthGuard role="admin" loginHref="/admin/login">
     <div className="relative mx-auto min-h-dvh w-full max-w-[480px] bg-paper pb-24 shadow-xl">
-      <header className="flex items-center justify-between px-5 pt-7">
-        <button
-          type="button"
-          aria-label="Open menu"
-          className="flex h-10 w-10 items-center justify-center rounded-full text-ink transition active:scale-95"
-        >
-          <IconMenu className="h-6 w-6" />
-        </button>
-        <p className="font-display text-[16px] font-bold tracking-tight text-ink">
-          RippleNet AI Admin
-        </p>
-        <div className="flex items-center gap-2.5">
-          <NotificationBell role="admin" />
-          <Image
-            src="/images/avatar_ali.png"
-            alt="Admin profile"
-            width={36}
-            height={36}
-            className="rounded-full object-cover ring-2 ring-white"
-          />
-        </div>
-      </header>
+      <AdminHeader title="RippleNet AI Admin" subtitle="Overview Dashboard" />
 
       <section className="mt-2 px-5">
         <div className="flex items-end justify-between gap-4">

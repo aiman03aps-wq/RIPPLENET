@@ -321,10 +321,10 @@ export function SosForm() {
                 className="h-full w-full object-cover"
               />
             ) : isPlayingSample ? (
-              /* Moving Flood Water Video Playback with Sound */
+              /* Authentic Emergency Video Recording Playback with Sound */
               <div className="relative h-full w-full bg-slate-950 overflow-hidden">
-                {/* Handheld Emergency Camera Sway on Base Frame */}
-                <div className="relative h-full w-full animate-camera-sway">
+                {/* Natural Camera Panning Across Flood Waters */}
+                <div className="relative h-full w-full animate-emergency-video">
                   <Image
                     src="/images/sos_video_frame.png"
                     alt="Sample flood emergency video"
@@ -333,52 +333,38 @@ export function SosForm() {
                     sizes="(max-width: 480px) 100vw, 480px"
                     className="object-cover"
                   />
+                </div>
 
-                  {/* Flowing Flood Water Wave Ripple & Current Layers */}
-                  <div
-                    className="absolute inset-x-0 bottom-0 top-[32%] pointer-events-none mix-blend-overlay opacity-80 animate-flood-water"
-                    style={{
-                      backgroundImage:
-                        "radial-gradient(ellipse at 50% 60%, rgba(255,255,255,0.45) 0%, transparent 65%), linear-gradient(105deg, rgba(255,255,255,0.2) 0%, rgba(14,90,138,0.3) 30%, transparent 70%)",
-                    }}
-                  />
+                {/* Viewfinder Reticle & Telemetry Overlays */}
+                <div className="absolute inset-0 pointer-events-none p-3 flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 rounded-full bg-red-600/90 px-2.5 py-1 text-[10.5px] font-bold text-white shadow-sm">
+                      <span className="h-2 w-2 rounded-full bg-white animate-pulse" />
+                      REC · SOS FOOTAGE
+                    </span>
+                    <span className="rounded-md bg-black/60 px-2 py-0.5 text-[9.5px] font-mono font-semibold text-slate-200 backdrop-blur-xs">
+                      1080p · 30 FPS
+                    </span>
+                  </div>
 
-                  {/* Moving River Rapids & Turbulent Current Streaks */}
-                  <div
-                    className="absolute inset-x-0 bottom-0 top-[38%] pointer-events-none opacity-60 animate-flood-ripples"
-                    style={{
-                      backgroundImage:
-                        "radial-gradient(circle at 30% 40%, rgba(255,255,255,0.35) 1px, transparent 1px), radial-gradient(circle at 70% 60%, rgba(255,255,255,0.25) 1.5px, transparent 1.5px), linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.25) 50%, transparent 100%)",
-                      backgroundSize: "60px 40px, 90px 60px, 180px 100%",
-                    }}
-                  />
+                  {/* Center Viewfinder Framing Crosshair */}
+                  <div className="self-center flex items-center justify-center opacity-40">
+                    <div className="h-6 w-6 border border-white/60 rounded-xs" />
+                  </div>
 
-                  {/* Surface Foam Drifts Moving Downstream */}
-                  <div className="absolute inset-x-0 bottom-0 top-[45%] pointer-events-none overflow-hidden animate-flood-foam">
-                    <svg className="w-full h-full opacity-45" viewBox="0 0 400 200" preserveAspectRatio="none">
-                      <path
-                        d="M0,40 Q100,10 200,45 T400,30 L400,200 L0,200 Z"
-                        fill="rgba(255,255,255,0.18)"
-                      />
-                      <path
-                        d="M0,70 Q120,40 240,75 T400,60 L400,200 L0,200 Z"
-                        fill="rgba(14,90,138,0.15)"
-                      />
-                    </svg>
+                  <div className="flex items-center justify-between text-[10px] font-mono text-white/90 drop-shadow-md">
+                    <span>GPS: 24.656°N, 68.837°E</span>
+                    <span>AUDIO: 44.1kHz STEREO</span>
                   </div>
                 </div>
 
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/50 flex flex-col justify-between p-3">
-                  <div className="flex items-center justify-between text-[11px] font-semibold text-white">
-                    <span className="flex items-center gap-1.5 rounded-full bg-emerald-600/90 px-2.5 py-0.5 text-[10px] font-bold shadow-sm">
-                      <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-                      Live Moving Footage
-                    </span>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/40 flex flex-col justify-between p-3">
+                  <div className="flex items-center justify-end">
                     <button
                       type="button"
                       onClick={() => setAudioMuted((m) => !m)}
                       aria-label={audioMuted ? "Unmute audio" : "Mute audio"}
-                      className="flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition"
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition shadow-sm"
                     >
                       {audioMuted ? <IconVolumeX className="h-3.5 w-3.5" /> : <IconVolume2 className="h-3.5 w-3.5" />}
                     </button>
