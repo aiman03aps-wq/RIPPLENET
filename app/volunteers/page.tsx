@@ -72,7 +72,7 @@ export default async function VolunteersPage() {
         </Link>
       </header>
 
-      <main className="pb-[110px]">
+      <main className="pb-[140px]">
         <section className="mt-5 grid grid-cols-4 gap-2 px-5" aria-label="Volunteer statistics">
           {stats.map(({ label, value, valueClass }) => (
             <div

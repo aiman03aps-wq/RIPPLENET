@@ -97,21 +97,23 @@ export function VolunteerCard({ volunteer }: { volunteer: RosterVolunteer }) {
   }
 
   return (
-    <div className="relative flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-sm">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-channel/10 font-display text-[15px] font-bold text-channel">
-        {initials(volunteer.name)}
-      </span>
+    <div className="relative flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-sm">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-channel/10 font-display text-[15px] font-bold text-channel">
+          {initials(volunteer.name)}
+        </span>
 
-      <div className="min-w-0 flex-1 leading-tight">
-        <p className="truncate text-[14px] font-bold text-ink">{volunteer.name}</p>
-        <p className="mt-1 text-[11.5px] font-medium tabular-nums text-slate-400">
-          <a href={`tel:${volunteer.phone.replace(/\s+/g, "")}`} className="hover:text-channel">
-            {volunteer.phone}
-          </a>
-        </p>
-        <p className="mt-0.5 text-[10.5px] font-medium tabular-nums text-slate-400">
-          {volunteer.activeTasks} active · {volunteer.totalTasks} total
-        </p>
+        <div className="min-w-0 flex-1 leading-tight">
+          <p className="truncate text-[14px] font-bold text-ink">{volunteer.name}</p>
+          <p className="mt-1 text-[11.5px] font-medium tabular-nums text-slate-400">
+            <a href={`tel:${volunteer.phone.replace(/\s+/g, "")}`} className="hover:text-channel">
+              {volunteer.phone}
+            </a>
+          </p>
+          <p className="mt-0.5 text-[10.5px] font-medium tabular-nums text-slate-400">
+            {volunteer.activeTasks} active · {volunteer.totalTasks} total
+          </p>
+        </div>
       </div>
 
       {/* 3-Option Interactive Status Toggle Button */}
@@ -120,7 +122,7 @@ export function VolunteerCard({ volunteer }: { volunteer: RosterVolunteer }) {
         onClick={() => setShowPicker((prev) => !prev)}
         disabled={busy}
         aria-label={`Change status for ${volunteer.name}. Current: ${currentConfig.label}`}
-        className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold border shadow-xs transition active:scale-95 ${currentConfig.className}`}
+        className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold border shadow-xs transition active:scale-95 shrink-0 whitespace-nowrap ${currentConfig.className}`}
       >
         <CurrentIcon className="h-3.5 w-3.5 shrink-0" />
         <span>{currentConfig.label}</span>
@@ -131,11 +133,11 @@ export function VolunteerCard({ volunteer }: { volunteer: RosterVolunteer }) {
       {showPicker && (
         <>
           <div
-            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-2xs"
+            className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-2xs"
             onClick={() => setShowPicker(false)}
           />
 
-          <div className="absolute right-3 top-14 z-50 w-[240px] rounded-2xl border border-slate-100 bg-white p-2.5 shadow-xl animate-slide-up">
+          <div className="absolute right-3 top-14 z-[70] w-[240px] rounded-2xl border border-slate-200 bg-white p-2.5 shadow-2xl animate-slide-up">
             <div className="flex items-center justify-between pb-2 mb-1 border-b border-slate-100 px-1">
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 Volunteer Status

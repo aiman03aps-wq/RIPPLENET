@@ -147,6 +147,7 @@ export function ComplaintsReportsClient({
   reports: ReportsData;
 }) {
   const router = useRouter();
+  const [complaintsList, setComplaintsList] = useState<ComplaintAdminView[]>(complaints);
   const [activeTab, setActiveTab] = useState<Tab>(defaultTab);
   const [filter, setFilter] = useState<Filter>("All");
   const [ascending, setAscending] = useState(false);
@@ -159,59 +160,79 @@ export function ComplaintsReportsClient({
   const statusOf = (c: ComplaintAdminView) => statusMap[c.status].label;
 
   const filters: { label: Filter; count: number }[] = [
-    { label: "All", count: complaints.length },
-    { label: "New", count: complaints.filter((c) => c.status === "open").length },
-    { label: "In Progress", count: complaints.filter((c) => c.status === "in_progress").length },
-    { label: "Resolved", count: complaints.filter((c) => c.status === "resolved").length },
+    { label: "All", count: complaintsList.length },
+    { label: "New", count: complaintsList.filter((c) => c.status === "open").length },
+    { label: "In Progress", count: complaintsList.filter((c) => c.status === "in_progress").length },
+    { label: "Resolved", count: complaintsList.filter((c) => c.status === "resolved").length },
   ];
 
   const filteredComplaints = useMemo(() => {
     const base =
-      filter === "All" ? complaints : complaints.filter((c) => statusOf(c) === filter);
+      filter === "All" ? complaintsList : complaintsList.filter((c) => statusOf(c) === filter);
     return [...base].sort((a, b) =>
       ascending
         ? a.createdAt.localeCompare(b.createdAt)
         : b.createdAt.localeCompare(a.createdAt),
     );
-  }, [complaints, filter, ascending]);
+  }, [complaintsList, filter, ascending]);
 
-  const resolving = complaints.find((c) => c.id === resolveId);
+  const resolving = complaintsList.find((c) => c.id === resolveId);
 
   async function startReview(id: number) {
     setBusyId(id);
     setError(null);
-    const res = await fetch("/api/complaints", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status: "in_progress" }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setBusyId(null);
-    if (!res.ok) {
-      setError(data.error ?? "Could not update complaint");
-      return;
+    try {
+      const res = await fetch("/api/complaints", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status: "in_progress" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error ?? "Could not update complaint");
+      }
+      setComplaintsList((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, status: "in_progress" } : c))
+      );
+    } catch (err: unknown) {
+      console.error("startReview error:", err);
+      setError(err instanceof Error ? err.message : "Could not update complaint");
+    } finally {
+      setBusyId(null);
+      router.refresh();
     }
-    router.refresh();
   }
 
   async function submitResolve() {
     if (resolveId == null || !responseText.trim()) return;
     setBusyId(resolveId);
     setError(null);
-    const res = await fetch("/api/complaints", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: resolveId, response: responseText }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setBusyId(null);
-    if (!res.ok) {
-      setError(data.error ?? "Could not resolve complaint");
-      return;
+    try {
+      const res = await fetch("/api/complaints", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: resolveId, response: responseText.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error ?? "Could not resolve complaint");
+      }
+      setComplaintsList((prev) =>
+        prev.map((c) =>
+          c.id === resolveId
+            ? { ...c, status: "resolved", response: responseText.trim() }
+            : c
+        )
+      );
+      setResolveId(null);
+      setResponseText("");
+    } catch (err: unknown) {
+      console.error("submitResolve error:", err);
+      setError(err instanceof Error ? err.message : "Could not resolve complaint");
+    } finally {
+      setBusyId(null);
+      router.refresh();
     }
-    setResolveId(null);
-    setResponseText("");
-    router.refresh();
   }
 
   function generateReport(key: string) {
