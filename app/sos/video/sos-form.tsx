@@ -321,20 +321,58 @@ export function SosForm() {
                 className="h-full w-full object-cover"
               />
             ) : isPlayingSample ? (
-              /* Steady, Crisp Sample Video Playback with Sound */
-              <div className="relative h-full w-full bg-slate-950">
-                <Image
-                  src="/images/sos_video_frame.png"
-                  alt="Sample flood emergency video"
-                  fill
-                  priority
-                  sizes="(max-width: 480px) 100vw, 480px"
-                  className="object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/50 flex flex-col justify-between p-3">
+              /* Moving Flood Water Video Playback with Sound */
+              <div className="relative h-full w-full bg-slate-950 overflow-hidden">
+                {/* Handheld Emergency Camera Sway on Base Frame */}
+                <div className="relative h-full w-full animate-camera-sway">
+                  <Image
+                    src="/images/sos_video_frame.png"
+                    alt="Sample flood emergency video"
+                    fill
+                    priority
+                    sizes="(max-width: 480px) 100vw, 480px"
+                    className="object-cover"
+                  />
+
+                  {/* Flowing Flood Water Wave Ripple & Current Layers */}
+                  <div
+                    className="absolute inset-x-0 bottom-0 top-[32%] pointer-events-none mix-blend-overlay opacity-80 animate-flood-water"
+                    style={{
+                      backgroundImage:
+                        "radial-gradient(ellipse at 50% 60%, rgba(255,255,255,0.45) 0%, transparent 65%), linear-gradient(105deg, rgba(255,255,255,0.2) 0%, rgba(14,90,138,0.3) 30%, transparent 70%)",
+                    }}
+                  />
+
+                  {/* Moving River Rapids & Turbulent Current Streaks */}
+                  <div
+                    className="absolute inset-x-0 bottom-0 top-[38%] pointer-events-none opacity-60 animate-flood-ripples"
+                    style={{
+                      backgroundImage:
+                        "radial-gradient(circle at 30% 40%, rgba(255,255,255,0.35) 1px, transparent 1px), radial-gradient(circle at 70% 60%, rgba(255,255,255,0.25) 1.5px, transparent 1.5px), linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.25) 50%, transparent 100%)",
+                      backgroundSize: "60px 40px, 90px 60px, 180px 100%",
+                    }}
+                  />
+
+                  {/* Surface Foam Drifts Moving Downstream */}
+                  <div className="absolute inset-x-0 bottom-0 top-[45%] pointer-events-none overflow-hidden animate-flood-foam">
+                    <svg className="w-full h-full opacity-45" viewBox="0 0 400 200" preserveAspectRatio="none">
+                      <path
+                        d="M0,40 Q100,10 200,45 T400,30 L400,200 L0,200 Z"
+                        fill="rgba(255,255,255,0.18)"
+                      />
+                      <path
+                        d="M0,70 Q120,40 240,75 T400,60 L400,200 L0,200 Z"
+                        fill="rgba(14,90,138,0.15)"
+                      />
+                    </svg>
+                  </div>
+                </div>
+
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/50 flex flex-col justify-between p-3">
                   <div className="flex items-center justify-between text-[11px] font-semibold text-white">
-                    <span className="flex items-center gap-1.5 rounded-full bg-emerald-600/90 px-2.5 py-0.5 text-[10px] font-bold">
-                      Playing Sample
+                    <span className="flex items-center gap-1.5 rounded-full bg-emerald-600/90 px-2.5 py-0.5 text-[10px] font-bold shadow-sm">
+                      <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                      Live Moving Footage
                     </span>
                     <button
                       type="button"
@@ -361,7 +399,7 @@ export function SosForm() {
 
                   <div>
                     <div className="flex items-center justify-between text-[10px] font-mono text-slate-200 mb-1">
-                      <span>Flood Sound Active</span>
+                      <span>Flood Sound &amp; Current Active</span>
                       <span>{mmss(sampleElapsed)} / 00:28</span>
                     </div>
                     <div className="h-1.5 w-full rounded-full bg-white/20 overflow-hidden">
