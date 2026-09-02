@@ -8,14 +8,11 @@ import { CitizenHeader } from "../../components/citizen-header";
 import { CitizenNav } from "../../components/citizen-nav";
 import {
   IconCheck,
-  IconChevronLeft,
-  IconInfo,
   IconMaximize,
   IconPlayFilled,
   IconSend,
-  IconVideo,
-  IconActivity,
-  IconRotateCcw,
+  IconVolume2,
+  IconVolumeX,
 } from "../../components/icons";
 import { NeedsSelector } from "./needs-selector";
 import { useCitizenLocation } from "../../components/use-citizen-location";
@@ -37,6 +34,8 @@ export function SosForm() {
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<number>(undefined);
   const sampleTimerRef = useRef<number>(undefined);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const audioSourceRef = useRef<AudioNode | null>(null);
 
   const [selected, setSelected] = useState<string[]>([]);
   const [name, setName] = useState("");
@@ -52,22 +51,72 @@ export function SosForm() {
     distanceKm: number | null;
   } | null>(null);
 
-  // Camera & Video Playback States
+  // Real Camera Recording State
   const [cameraOn, setCameraOn] = useState(false);
   const [camError, setCamError] = useState(false);
   const [elapsed, setElapsed] = useState(0);
 
-  // Sample Video Playback State
+  // Sample Video Playback State (Steady, Non-Blinking)
   const [isPlayingSample, setIsPlayingSample] = useState(false);
   const [sampleElapsed, setSampleElapsed] = useState(0);
-  const [hasRecordedClip, setHasRecordedClip] = useState(false);
+  const [audioMuted, setAudioMuted] = useState(false);
 
   const { coords, locState, districtName, locate } = useCitizenLocation();
+
+  // Web Audio Flood/Water Ambient Sound Generator
+  function startFloodAudio() {
+    try {
+      if (audioMuted) return;
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      audioCtxRef.current = ctx;
+
+      const bufferSize = ctx.sampleRate * 2;
+      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+
+      const whiteNoise = ctx.createBufferSource();
+      whiteNoise.buffer = noiseBuffer;
+      whiteNoise.loop = true;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = 400; // rushing flood water frequency
+      filter.Q.value = 1.0;
+
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.06, ctx.currentTime);
+
+      whiteNoise.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      whiteNoise.start();
+      audioSourceRef.current = whiteNoise;
+    } catch {
+      // Ignore if audio permissions blocked
+    }
+  }
+
+  function stopFloodAudio() {
+    try {
+      if (audioCtxRef.current) {
+        audioCtxRef.current.close();
+        audioCtxRef.current = null;
+        audioSourceRef.current = null;
+      }
+    } catch {}
+  }
 
   useEffect(() => {
     return () => {
       window.clearInterval(timerRef.current);
       window.clearInterval(sampleTimerRef.current);
+      stopFloodAudio();
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, []);
@@ -75,6 +124,7 @@ export function SosForm() {
   // Sample video playback timer
   useEffect(() => {
     if (isPlayingSample) {
+      startFloodAudio();
       window.clearInterval(sampleTimerRef.current);
       sampleTimerRef.current = window.setInterval(() => {
         setSampleElapsed((prev) => {
@@ -85,16 +135,21 @@ export function SosForm() {
         });
       }, 1000);
     } else {
+      stopFloodAudio();
       window.clearInterval(sampleTimerRef.current);
     }
-    return () => window.clearInterval(sampleTimerRef.current);
-  }, [isPlayingSample]);
+    return () => {
+      stopFloodAudio();
+      window.clearInterval(sampleTimerRef.current);
+    };
+  }, [isPlayingSample, audioMuted]);
 
   const toggleNeed = (label: string) =>
     setSelected((prev) =>
       prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]
     );
 
+  // Real Camera Recording Start (Direct device camera)
   const startCamera = async () => {
     setCamError(false);
     setIsPlayingSample(false);
@@ -110,12 +165,7 @@ export function SosForm() {
       window.clearInterval(timerRef.current);
       timerRef.current = window.setInterval(() => setElapsed((s) => s + 1), 1000);
     } catch {
-      // Fallback simulation mode
-      setCamError(false);
-      setCameraOn(true);
-      setElapsed(0);
-      window.clearInterval(timerRef.current);
-      timerRef.current = window.setInterval(() => setElapsed((s) => s + 1), 1000);
+      setCamError(true);
     }
   };
 
@@ -124,7 +174,6 @@ export function SosForm() {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     setCameraOn(false);
-    setHasRecordedClip(true);
   };
 
   const toggleSamplePlay = () => {
@@ -220,7 +269,6 @@ export function SosForm() {
               setName("");
               setPhone("");
               setPeople("1");
-              setHasRecordedClip(false);
             }}
             className="mt-3 w-full text-center text-[13px] font-semibold text-channel"
           >
@@ -279,62 +327,48 @@ export function SosForm() {
           </div>
         </section>
 
-        {/* Video Player & Recorder Section */}
+        {/* Video Player & Camera Section */}
         <section className="mt-6 px-5">
           <Translated k="recordVideoTitle" as="h2" className="font-display text-[16px] font-bold text-ink" />
           <Translated k="recordVideoDesc2" as="p" className="mt-1 text-[12px] text-slate-500" />
 
-          {/* Interactive Video Frame */}
+          {/* Video Viewport */}
           <div className="relative mt-3 aspect-video w-full overflow-hidden rounded-2xl bg-slate-900 shadow-md">
             {cameraOn ? (
-              <div className="relative h-full w-full bg-slate-950">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="h-full w-full object-cover"
-                />
-                {/* Viewfinder Overlay */}
-                <div className="absolute inset-0 pointer-events-none border border-white/20 m-3 rounded-lg flex flex-col justify-between p-2.5">
-                  <div className="flex items-center justify-between text-[10px] font-mono text-red-500 font-bold">
-                    <span className="flex items-center gap-1">
-                      <span className="h-2 w-2 rounded-full bg-red-500 animate-ping" />
-                      REC [{mmss(elapsed)}]
-                    </span>
-                    <span className="text-white/80">1080p · 30FPS</span>
-                  </div>
-                  <div className="flex items-center justify-between text-[9px] font-mono text-white/70">
-                    <span>GPS: {coords ? `${coords.lat.toFixed(3)}N, ${coords.lng.toFixed(3)}E` : "CAPTURING"}</span>
-                    <span>AI SCENE: FLOOD SURGE</span>
-                  </div>
-                </div>
-              </div>
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="h-full w-full object-cover"
+              />
             ) : isPlayingSample ? (
-              /* Live Playing Sample Video Simulation */
-              <div className="relative h-full w-full bg-slate-950 overflow-hidden">
+              /* Steady, Crisp Sample Video Playback with Sound */
+              <div className="relative h-full w-full bg-slate-950">
                 <Image
                   src="/images/sos_video_frame.png"
-                  alt="Playing sample flood relief video"
+                  alt="Sample flood emergency video"
                   fill
                   priority
                   sizes="(max-width: 480px) 100vw, 480px"
-                  className="object-cover scale-105 animate-pulse"
+                  className="object-cover"
                 />
-
-                {/* Video Playback HUD & Waveforms */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/60 flex flex-col justify-between p-3">
-                  <div className="flex items-center justify-between text-[10px] font-mono font-bold text-white">
-                    <span className="flex items-center gap-1.5 text-emerald-400">
-                      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                      PLAYING SAMPLE ({mmss(sampleElapsed)} / 00:28)
+                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/50 flex flex-col justify-between p-3">
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-white">
+                    <span className="flex items-center gap-1.5 rounded-full bg-emerald-600/90 px-2.5 py-0.5 text-[10px] font-bold">
+                      Playing Sample
                     </span>
-                    <span className="rounded-md bg-black/50 px-1.5 py-0.5 text-slate-300">
-                      24.748° N, 68.865° E
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setAudioMuted((m) => !m)}
+                      aria-label={audioMuted ? "Unmute audio" : "Mute audio"}
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition"
+                    >
+                      {audioMuted ? <IconVolumeX className="h-3.5 w-3.5" /> : <IconVolume2 className="h-3.5 w-3.5" />}
+                    </button>
                   </div>
 
-                  {/* Center Pause Button */}
+                  {/* Play/Pause center toggle */}
                   <button
                     type="button"
                     onClick={toggleSamplePlay}
@@ -347,13 +381,10 @@ export function SosForm() {
                     </span>
                   </button>
 
-                  {/* Audio waveform meter & progress bar */}
                   <div>
-                    <div className="flex items-center justify-between text-[9.5px] font-mono text-slate-300 mb-1">
-                      <span className="flex items-center gap-1 text-sky-400">
-                        <IconActivity className="h-3 w-3" /> DISTRESS AUDIO (WATER NOISE DETECTED)
-                      </span>
-                      <span>28s</span>
+                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-200 mb-1">
+                      <span>Sample Flood Footage</span>
+                      <span>{mmss(sampleElapsed)} / 00:28</span>
                     </div>
                     <div className="h-1.5 w-full rounded-full bg-white/20 overflow-hidden">
                       <div
@@ -365,7 +396,7 @@ export function SosForm() {
                 </div>
               </div>
             ) : (
-              /* Video Poster & Play Trigger */
+              /* Default Static Frame */
               <div className="relative h-full w-full">
                 <Image
                   src="/images/sos_video_frame.png"
@@ -375,60 +406,43 @@ export function SosForm() {
                   sizes="(max-width: 480px) 100vw, 480px"
                   className="object-cover"
                 />
-                <span className="absolute left-2.5 top-2.5 flex h-7 px-2 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold tabular-nums text-white shadow-md">
-                  SAMPLE 00:28
-                </span>
-                <span className="absolute bottom-2.5 right-2.5 text-white drop-shadow-md">
-                  <IconMaximize className="h-[18px] w-[18px]" />
-                </span>
-
-                {/* Big Interactive Play Button */}
                 <button
                   type="button"
                   onClick={toggleSamplePlay}
-                  aria-label="Play recorded video"
-                  className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-ink shadow-2xl transition hover:scale-105 active:scale-90 ring-4 ring-white/30"
+                  aria-label="Play sample video"
+                  className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/95 text-ink shadow-2xl transition hover:scale-105 active:scale-90"
                 >
-                  <IconPlayFilled className="ml-1 h-7 w-7 text-channel" />
+                  <IconPlayFilled className="ml-0.5 h-6 w-6 text-channel" />
                 </button>
               </div>
             )}
+
+            <span className="absolute left-2.5 top-2.5 flex h-8 min-w-[32px] px-2 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold tabular-nums text-white shadow">
+              {cameraOn ? mmss(elapsed) : "00:28"}
+            </span>
+            <span className="absolute bottom-2.5 right-2.5 text-white drop-shadow-md">
+              <IconMaximize className="h-[18px] w-[18px]" />
+            </span>
           </div>
 
-          {/* Action Buttons */}
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={cameraOn ? stopCamera : startCamera}
-              className={`flex h-12 items-center justify-center gap-1.5 rounded-2xl text-[13px] font-bold text-white shadow-md transition active:scale-[0.98] ${
-                cameraOn ? "bg-red-600 shadow-red-600/25" : "bg-ink shadow-ink/20"
-              }`}
-            >
-              <IconVideo className="h-4 w-4" />
-              {cameraOn ? "Stop Recording" : "Record Live Video"}
-            </button>
-
-            <button
-              type="button"
-              onClick={toggleSamplePlay}
-              className={`flex h-12 items-center justify-center gap-1.5 rounded-2xl text-[13px] font-bold border transition active:scale-[0.98] ${
-                isPlayingSample
-                  ? "bg-sky-50 border-channel text-channel"
-                  : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
-              }`}
-            >
-              <IconPlayFilled className="h-4 w-4" />
-              {isPlayingSample ? "Pause Sample" : "Play Sample Video"}
-            </button>
-          </div>
-
+          {/* Clean Camera Recording Button (Original Simple Workflow) */}
+          <button
+            type="button"
+            onClick={cameraOn ? stopCamera : startCamera}
+            className={`mt-3 flex h-12 w-full items-center justify-center rounded-full text-[14px] font-semibold text-white shadow-lg transition active:scale-[0.98] ${
+              cameraOn ? "bg-red-500 shadow-red-500/20" : "bg-ink shadow-ink/20"
+            }`}
+          >
+            <Translated k={cameraOn ? "stopRecordingBtn" : "recordVideoBtn"} />
+          </button>
           <p className="mt-2 text-center text-[11px] font-medium tabular-nums text-slate-400">
-            {cameraOn
-              ? `Recording: ${mmss(elapsed)} / 60:00`
-              : isPlayingSample
-              ? `Sample Playing: ${mmss(sampleElapsed)} / 00:28`
-              : "00:28 Sample Footage Ready · 1080p"}
+            {cameraOn ? `${mmss(elapsed)} / 60:00` : "00:00 / 60:00"}
           </p>
+          {camError && (
+            <p className="mt-1.5 rounded-lg bg-amber-50 px-3 py-2 text-center text-[11.5px] font-medium text-amber-800">
+              <Translated k="cameraUnavailable" />
+            </p>
+          )}
         </section>
 
         <NeedsSelector selected={selected} onToggle={toggleNeed} />
