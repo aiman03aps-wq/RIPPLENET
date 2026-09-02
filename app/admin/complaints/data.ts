@@ -5,45 +5,46 @@ export async function loadComplaintsReportsData(): Promise<{
   complaints: ComplaintAdminView[];
   reports: ReportsData;
 }> {
-  const [complaints, requests, camps, stockItems, restocks, volunteers] = await Promise.all([
-    prisma.complaint.findMany({
-      orderBy: { createdAt: "desc" },
-      include: { camp: { select: { name: true, district: true } } },
-    }),
-    prisma.request.findMany({
-      select: {
-        code: true,
-        priority: true,
-        status: true,
-        peopleCount: true,
-        createdAt: true,
-        resolvedAt: true,
-        campId: true,
-        camp: { select: { name: true, district: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.camp.findMany({
-      include: { _count: { select: { requests: true } } },
-      orderBy: { name: "asc" },
-    }),
-    prisma.stockItem.findMany({
-      include: { camp: { select: { name: true } } },
-      orderBy: [{ camp: { name: "asc" } }, { name: "asc" }],
-    }),
-    prisma.restockRequest.findMany({
-      orderBy: { createdAt: "desc" },
-      include: { camp: { select: { name: true } } },
-    }),
-    prisma.user.findMany({
-      where: { role: "volunteer" },
-      include: {
-        camp: { select: { name: true } },
-        tasks: { select: { status: true } },
-      },
-      orderBy: { name: "asc" },
-    }),
-  ]);
+  try {
+    const [complaints, requests, camps, stockItems, restocks, volunteers] = await Promise.all([
+      prisma.complaint.findMany({
+        orderBy: { createdAt: "desc" },
+        include: { camp: { select: { name: true, district: true } } },
+      }),
+      prisma.request.findMany({
+        select: {
+          code: true,
+          priority: true,
+          status: true,
+          peopleCount: true,
+          createdAt: true,
+          resolvedAt: true,
+          campId: true,
+          camp: { select: { name: true, district: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.camp.findMany({
+        include: { _count: { select: { requests: true } } },
+        orderBy: { name: "asc" },
+      }),
+      prisma.stockItem.findMany({
+        include: { camp: { select: { name: true } } },
+        orderBy: [{ camp: { name: "asc" } }, { name: "asc" }],
+      }),
+      prisma.restockRequest.findMany({
+        orderBy: { createdAt: "desc" },
+        include: { camp: { select: { name: true } } },
+      }),
+      prisma.user.findMany({
+        where: { role: "volunteer" },
+        include: {
+          camp: { select: { name: true } },
+          tasks: { select: { status: true } },
+        },
+        orderBy: { name: "asc" },
+      }),
+    ]);
 
   const complaintViews: ComplaintAdminView[] = complaints.map((c) => ({
     id: c.id,
@@ -123,5 +124,18 @@ export async function loadComplaintsReportsData(): Promise<{
     })),
   };
 
-  return { complaints: complaintViews, reports };
+    return { complaints: complaintViews, reports };
+  } catch (err) {
+    console.warn("loadComplaintsReportsData fallback due to database initialization:", err);
+    return {
+      complaints: [],
+      reports: {
+        requests: [],
+        camps: [],
+        stock: [],
+        restocks: [],
+        volunteers: [],
+      },
+    };
+  }
 }

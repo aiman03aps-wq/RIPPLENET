@@ -8,6 +8,8 @@ import { getSession } from "../../../../../lib/session";
 import { parseNeeds, formatFullDate, suggestParcel } from "../../../../../lib/needs";
 import { ResolveForm } from "./resolve-form";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Resolve Delivery — RippleNet AI",
 };

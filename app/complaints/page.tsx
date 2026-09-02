@@ -8,6 +8,8 @@ import { ComplaintsList, type ComplaintView } from "./complaints-list";
 import { prisma } from "../../lib/db";
 import { getSession } from "../../lib/session";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Complaints — RippleNet AI",
 };

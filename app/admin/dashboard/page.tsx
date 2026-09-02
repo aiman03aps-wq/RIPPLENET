@@ -26,6 +26,8 @@ import { getSession } from "../../../lib/session";
 import { assessRisk } from "../../../lib/risk";
 import { parseNeeds } from "../../../lib/needs";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Admin Dashboard — RippleNet AI",
 };

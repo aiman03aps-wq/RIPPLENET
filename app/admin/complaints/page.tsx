@@ -3,6 +3,8 @@ import { AuthGuard } from "../../components/auth-guard";
 import { ComplaintsReportsClient } from "./complaints-reports-client";
 import { loadComplaintsReportsData } from "./data";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Complaints & Reports — RippleNet AI",
 };

@@ -101,6 +101,8 @@ function SectionHeading({ title }: { title: string }) {
   return <h2 className="font-display text-[19px] font-bold tracking-tight text-ink">{title}</h2>;
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function TaskDetailPage(props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
   const session = await getSession();

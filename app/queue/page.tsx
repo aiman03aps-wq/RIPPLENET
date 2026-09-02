@@ -9,6 +9,8 @@ import { parseNeeds } from "../../lib/needs";
 import { assessRisk } from "../../lib/risk";
 import { QueueList } from "./queue-list";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Incoming Requests — RippleNet AI",
 };
