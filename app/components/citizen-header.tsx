@@ -33,41 +33,43 @@ export function CitizenHeader({
   return (
     <>
       <header className="flex items-center justify-between gap-3 px-5 pt-3 pb-2 bg-white border-b border-slate-100">
-        <Link
-          href="/"
-          className="flex items-center gap-2.5 transition active:scale-95 group"
-          title="Go to RippleNet Home"
-        >
-          <Logo className="h-10 w-10 shrink-0 group-hover:opacity-90" />
-          <div className="leading-tight">
-            <p className="font-display text-[16px] font-bold text-ink tracking-tight flex items-center gap-1.5">
-              {title}
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            </p>
-            <p className="text-[11px] font-medium text-slate-500">{subtitle}</p>
-          </div>
-        </Link>
+        <div className="flex items-center gap-3">
+          {/* Functioning Hamburger Menu Button (Three lines on left side) */}
+          <button
+            type="button"
+            aria-label="Open Navigation Menu"
+            onClick={() => setMenuOpen(true)}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-50 text-ink hover:bg-slate-100 active:scale-90 transition border border-slate-200/80 shadow-sm shrink-0"
+          >
+            <IconMenu className="h-[20px] w-[20px]" />
+          </button>
 
-        {/* Functioning Hamburger Menu Button (Three lines) */}
-        <button
-          type="button"
-          aria-label="Open Navigation Menu"
-          onClick={() => setMenuOpen(true)}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-50 text-ink hover:bg-slate-100 active:scale-90 transition border border-slate-200/80 shadow-sm"
-        >
-          <IconMenu className="h-[20px] w-[20px]" />
-        </button>
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 transition active:scale-95 group"
+            title="Go to RippleNet Home"
+          >
+            <Logo className="h-9 w-9 shrink-0 group-hover:opacity-90" />
+            <div className="leading-tight">
+              <p className="font-display text-[15.5px] font-bold text-ink tracking-tight flex items-center gap-1.5">
+                {title}
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              </p>
+              <p className="text-[11px] font-medium text-slate-500">{subtitle}</p>
+            </div>
+          </Link>
+        </div>
       </header>
 
-      {/* Slide-out Navigation Drawer */}
+      {/* Slide-out Navigation Drawer on Left Side */}
       {menuOpen && (
-        <div className="fixed inset-0 z-[100] flex justify-end">
+        <div className="fixed inset-0 z-[100] flex justify-start">
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-xs transition-opacity animate-fade-in"
             onClick={() => setMenuOpen(false)}
           />
 
-          <aside className="relative w-full max-w-[340px] h-full bg-white shadow-2xl flex flex-col z-10 animate-slide-left overflow-y-auto">
+          <aside className="relative w-full max-w-[340px] h-full bg-white shadow-2xl flex flex-col z-10 animate-slide-right overflow-y-auto">
             {/* Drawer Header */}
             <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-sky-50/50">
               <Link
