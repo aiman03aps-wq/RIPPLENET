@@ -25,6 +25,7 @@ import {
   IconUsers,
 } from "./components/icons";
 import { Logo } from "./components/logo";
+import { LiveImpactSection } from "./components/live-impact-section";
 
 const features = [
   { label: "No Data for Others", Icon: IconShield },
@@ -77,12 +78,6 @@ const workflowSteps = [
   },
 ] as const;
 
-const impactMetrics = [
-  { label: "People Helped", value: "12,540", Icon: IconUsers, tone: "bg-sky-50 text-channel" },
-  { label: "Relief Packages", value: "8,320", Icon: IconPackage, tone: "bg-emerald-50 text-emerald-600" },
-  { label: "Relief Camps", value: "128", Icon: IconMapPin, tone: "bg-violet-50 text-violet-600" },
-  { label: "Active Deliveries", value: "245", Icon: IconTruck, tone: "bg-blue-50 text-blue-600" },
-] as const;
 
 function AppHeader() {
   return (
@@ -284,32 +279,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="mt-9 px-5">
-          <div className="flex items-baseline justify-between">
-            <h2 className="flex items-center gap-2 font-display text-[19px] font-bold tracking-tight text-ink">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-              </span>
-              Live Impact Metrics
-            </h2>
-            <a href="#" className="flex items-center text-[13px] font-semibold text-channel">
-              View All
-              <IconChevronRight className="h-3.5 w-3.5" />
-            </a>
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            {impactMetrics.map(({ label, value, Icon, tone }) => (
-              <div key={label} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-                <span className={`flex h-10 w-10 items-center justify-center rounded-full ${tone}`}>
-                  <Icon className="h-5 w-5" />
-                </span>
-                <p className="mt-3 font-display text-[20px] font-bold tabular-nums text-ink">{value}</p>
-                <p className="mt-0.5 text-[11px] font-medium text-slate-500">{label}</p>
-              </div>
-            ))}
-          </div>
-        </section>
+        <LiveImpactSection />
 
         <section className="mt-9 px-5">
           <div className="flex items-baseline justify-between">
