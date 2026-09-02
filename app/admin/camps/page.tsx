@@ -3,6 +3,8 @@ import { AuthGuard } from "../../components/auth-guard";
 import { CampsRestockClient } from "./camps-restock-client";
 import { loadCampsRestockData } from "./data";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Camps & Restock — RippleNet AI",
 };

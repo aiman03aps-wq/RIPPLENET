@@ -32,6 +32,8 @@ import { AgentReasoningCard } from "../../components/agent-reasoning-card";
 import { runMultiAgentPipeline } from "../../../lib/agents";
 import { displayPriority, formatFullDate, parseNeeds, suggestParcel } from "../../../lib/needs";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Request Details — RippleNet AI",
 };

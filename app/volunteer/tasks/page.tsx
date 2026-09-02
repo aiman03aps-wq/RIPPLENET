@@ -9,6 +9,8 @@ import { getSession } from "../../../lib/session";
 import { haversineKm } from "../../../lib/geo";
 import { parseNeeds, displayPriority, formatDayTime, isToday } from "../../../lib/needs";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "My Tasks — RippleNet AI",
 };

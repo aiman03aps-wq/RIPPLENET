@@ -18,6 +18,8 @@ import { prisma } from "../../../lib/db";
 import { getSession } from "../../../lib/session";
 import { formatDayTime, formatFullDate, parseNeeds } from "../../../lib/needs";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Delivery History — Volunteer Portal",
 };

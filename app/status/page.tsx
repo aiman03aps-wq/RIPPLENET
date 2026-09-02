@@ -22,8 +22,10 @@ import { CopyRequestId } from "./copy-request-id";
 import { TrackSearch } from "./track-search";
 import { StatusRefresher } from "./status-refresher";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
-  title: "My Request — RippleNet AI",
+  title: "Track Status — RippleNet AI",
 };
 
 const timelineKeys = ["received", "processing", "assigned", "inTransit", "resolved"] as const;
