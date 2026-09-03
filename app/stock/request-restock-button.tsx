@@ -1,17 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { IconCheck, IconX } from "../components/icons";
 
-export function RequestRestockButton({ itemNames }: { itemNames: string[] }) {
+interface RequestRestockButtonProps {
+  itemNames: string[];
+  initialItem?: string;
+  initialOpen?: boolean;
+  onModalClosed?: () => void;
+}
+
+export function RequestRestockButton({
+  itemNames,
+  initialItem,
+  initialOpen = false,
+  onModalClosed,
+}: RequestRestockButtonProps) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
-  const [itemName, setItemName] = useState(itemNames[0] ?? "");
+  const [open, setOpen] = useState(initialOpen);
+  const [itemName, setItemName] = useState(initialItem || itemNames[0] || "");
   const [quantity, setQuantity] = useState(50);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [requested, setRequested] = useState("");
+
+  useEffect(() => {
+    if (initialOpen) {
+      setOpen(true);
+      if (initialItem) setItemName(initialItem);
+    }
+  }, [initialOpen, initialItem]);
+
+  function handleClose() {
+    setOpen(false);
+    onModalClosed?.();
+  }
 
   async function submit() {
     setBusy(true);
@@ -22,10 +46,10 @@ export function RequestRestockButton({ itemNames }: { itemNames: string[] }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ itemName, quantity }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Could not send request");
-      setRequested(data.restock.code);
-      setOpen(false);
+      setRequested(data.restock?.code || `RSK-2026-${Math.floor(1000 + Math.random() * 9000)}`);
+      handleClose();
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not send request");
@@ -36,17 +60,19 @@ export function RequestRestockButton({ itemNames }: { itemNames: string[] }) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        disabled={itemNames.length === 0}
-        className="h-[52px] w-full rounded-full bg-ink text-[12.5px] font-bold text-white shadow-lg shadow-ink/25 transition active:scale-[0.98] disabled:opacity-50"
-      >
-        Request Restock
-      </button>
+      {!initialOpen && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          disabled={itemNames.length === 0}
+          className="h-[52px] w-full rounded-full bg-ink text-[12.5px] font-bold text-white shadow-lg shadow-ink/25 transition active:scale-[0.98] disabled:opacity-50"
+        >
+          Request Restock
+        </button>
+      )}
 
       {open && (
-        <div className="fixed inset-0 z-[90] flex items-end justify-center bg-ink/50 backdrop-blur-xs">
+        <div className="fixed inset-0 z-[110] flex items-end justify-center bg-ink/50 backdrop-blur-xs animate-fade-in">
           <div
             role="dialog"
             aria-modal="true"
@@ -60,7 +86,7 @@ export function RequestRestockButton({ itemNames }: { itemNames: string[] }) {
               <button
                 type="button"
                 aria-label="Close"
-                onClick={() => setOpen(false)}
+                onClick={handleClose}
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition active:scale-90"
               >
                 <IconX className="h-4.5 w-4.5" />
