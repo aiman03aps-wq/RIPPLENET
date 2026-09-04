@@ -186,18 +186,25 @@ async function main() {
 
   await prisma.restockRequest.createMany({
     data: [
-      { code: "RST-2026-00001", campId: badinCamp.id, itemName: "Family Food Pack", quantity: 200, status: "pending", createdAt: daysAgo(0, 5) },
-      { code: "RST-2026-00002", campId: badinCamp.id, itemName: "Zinc Tablets", quantity: 100, status: "pending", createdAt: daysAgo(0, 3) },
-      { code: "RST-2026-00003", campId: camps[1].id, itemName: "Mineral Water (1.5L)", quantity: 150, status: "approved", createdAt: daysAgo(1, 2) },
-      { code: "RST-2026-00004", campId: camps[8].id, itemName: "Family Tent", quantity: 20, status: "pending", createdAt: daysAgo(0, 8) },
+      { code: "RST-2026-00001", campId: rwpCamp.id, itemName: "AquaTabs Water Purification (50 Tabs)", quantity: 300, status: "pending", createdAt: daysAgo(0, 4) },
+      { code: "RST-2026-00002", campId: rwpCamp.id, itemName: "Oral Rehydration Salts (ORS)", quantity: 250, status: "approved", createdAt: daysAgo(1, 2) },
+      { code: "RST-2026-00003", campId: rwpCamp.id, itemName: "Family Dry Ration Pack (15kg)", quantity: 150, status: "pending", createdAt: daysAgo(0, 6) },
+      { code: "RST-2026-00004", campId: badinCamp.id, itemName: "Family Food Pack", quantity: 200, status: "pending", createdAt: daysAgo(0, 5) },
+      { code: "RST-2026-00005", campId: badinCamp.id, itemName: "Zinc Tablets", quantity: 100, status: "pending", createdAt: daysAgo(0, 3) },
+      { code: "RST-2026-00006", campId: nowsheraCamp.id, itemName: "Mineral Water (1.5L)", quantity: 150, status: "approved", createdAt: daysAgo(1, 2) },
+      { code: "RST-2026-00007", campId: lahoreCamp.id, itemName: "Family Tent", quantity: 20, status: "pending", createdAt: daysAgo(0, 8) },
     ],
   });
 
   await prisma.complaint.createMany({
     data: [
-      { code: "CMP-2026-00001", citizenName: "Sakina", phone: "0300 1112233", message: "Food pack was missing water bottles promised with delivery.", category: "delivery", campId: badinCamp.id, status: "open", createdAt: daysAgo(0, 6) },
-      { code: "CMP-2026-00002", citizenName: "Nazir Ahmed", phone: "0311 2223344", message: "Volunteer arrived 2 hours after the promised time.", category: "service", campId: badinCamp.id, status: "open", createdAt: daysAgo(1, 3) },
-      { code: "CMP-2026-00003", citizenName: "Mai Jannat", phone: "0333 4445566", message: "Wrong medicine delivered, needed ORS for the child.", category: "delivery", campId: badinCamp.id, status: "resolved", response: "Corrected same day. ORS sachets delivered by evening.", createdAt: daysAgo(2, 4), resolvedAt: daysAgo(2) },
+      { code: "CMP-2026-00001", citizenName: "Zubair Abbasi", phone: "0300 5551122", message: "Rations arrived in Raja Bazaar, but water purification tabs were missing in the parcel.", category: "delivery", campId: rwpCamp.id, status: "open", createdAt: daysAgo(0, 4) },
+      { code: "CMP-2026-00002", citizenName: "Parveen Akhtar", phone: "0333 4443322", message: "Patient is experiencing severe fever and dehydration; urgently requested paracetamol & ORS.", category: "medical", campId: rwpCamp.id, status: "in_progress", createdAt: daysAgo(1, 2) },
+      { code: "CMP-2026-00003", citizenName: "Tariq Mehmood", phone: "0345 9998877", message: "Volunteer arrived on motorcycle but family needed a tent for 6 people.", category: "service", campId: rwpCamp.id, status: "resolved", response: "Emergency family tent dispatched and erected by evening team.", createdAt: daysAgo(2, 5), resolvedAt: daysAgo(2, 1) },
+      { code: "CMP-2026-00004", citizenName: "Sakina Bibi", phone: "0300 1112233", message: "Food pack was missing clean drinking water bottles promised with delivery.", category: "delivery", campId: badinCamp.id, status: "open", createdAt: daysAgo(0, 6) },
+      { code: "CMP-2026-00005", citizenName: "Nazir Ahmed", phone: "0311 2223344", message: "Volunteer arrived 2 hours after the promised time due to flooded road.", category: "service", campId: badinCamp.id, status: "in_progress", createdAt: daysAgo(1, 3) },
+      { code: "CMP-2026-00006", citizenName: "Mai Jannat", phone: "0333 4445566", message: "Wrong medicine delivered, needed pediatric zinc & ORS for infant.", category: "medical", campId: badinCamp.id, status: "resolved", response: "Corrected same day. Pediatric ORS sachets delivered by volunteer.", createdAt: daysAgo(2, 4), resolvedAt: daysAgo(2) },
+      { code: "CMP-2026-00007", citizenName: "Gul Khan", phone: "0321 7776655", message: "Nowshera river sector relief boat was delayed by heavy water current.", category: "delivery", campId: nowsheraCamp.id, status: "open", createdAt: daysAgo(0, 2) },
     ],
   });
 

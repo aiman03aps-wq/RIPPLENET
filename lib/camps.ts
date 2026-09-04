@@ -850,3 +850,145 @@ export function getMockRequestsForCamp(camp: CampRecord): any[] {
     },
   ];
 }
+
+export function getMockComplaintsForCamp(camp: CampRecord): any[] {
+  const dist = camp.district;
+  const isRwp = /rawalpindi|islamabad|murree|attock/i.test(dist);
+  const isNowshera = /nowshera|peshawar|charsadda|mardan|swat|kpk/i.test(dist);
+  const isBadin = /badin|thatta|sujawal|sindh/i.test(dist);
+
+  if (isRwp) {
+    return [
+      {
+        id: 101,
+        code: "CMP-2026-00001",
+        citizenName: "Zubair Abbasi",
+        phone: "0300 5551122",
+        message: "Rations arrived in Raja Bazaar, but water purification tabs were missing in the parcel.",
+        category: "delivery",
+        campId: camp.id,
+        status: "open",
+        response: null,
+        createdAt: new Date(Date.now() - 3600000 * 4),
+      },
+      {
+        id: 102,
+        code: "CMP-2026-00002",
+        citizenName: "Parveen Akhtar",
+        phone: "0333 4443322",
+        message: "Patient in Dhok Kala Khan is experiencing severe fever and dehydration; urgently requested paracetamol & ORS.",
+        category: "medical",
+        campId: camp.id,
+        status: "in_progress",
+        response: null,
+        createdAt: new Date(Date.now() - 3600000 * 12),
+      },
+      {
+        id: 103,
+        code: "CMP-2026-00003",
+        citizenName: "Tariq Mehmood",
+        phone: "0345 9998877",
+        message: "Volunteer arrived on motorcycle but family of 6 required a weatherproof shelter tent.",
+        category: "service",
+        campId: camp.id,
+        status: "resolved",
+        response: "Emergency family tent dispatched and erected by evening team.",
+        createdAt: new Date(Date.now() - 3600000 * 30),
+      },
+      {
+        id: 104,
+        code: "CMP-2026-00004",
+        citizenName: "Naseem Bibi",
+        phone: "0312 3334455",
+        message: "Clean drinking water was exhausted in Sector I-8 inundated pocket.",
+        category: "delivery",
+        campId: camp.id,
+        status: "open",
+        response: null,
+        createdAt: new Date(Date.now() - 3600000 * 2),
+      },
+    ];
+  }
+
+  if (isNowshera) {
+    return [
+      {
+        id: 201,
+        code: "CMP-2026-00010",
+        citizenName: "Gul Khan",
+        phone: "0321 7776655",
+        message: "Nowshera river sector relief boat was delayed by heavy water current.",
+        category: "delivery",
+        campId: camp.id,
+        status: "open",
+        response: null,
+        createdAt: new Date(Date.now() - 3600000 * 3),
+      },
+      {
+        id: 202,
+        code: "CMP-2026-00011",
+        citizenName: "Zahid Shah",
+        phone: "0333 9991122",
+        message: "Requested urgent baby food and dry milk for infants in Charsadda relief point.",
+        category: "medical",
+        campId: camp.id,
+        status: "in_progress",
+        response: null,
+        createdAt: new Date(Date.now() - 3600000 * 8),
+      },
+      {
+        id: 203,
+        code: "CMP-2026-00012",
+        citizenName: "Sheraz Khan",
+        phone: "0345 1114477",
+        message: "Received emergency ration pack, water filter kit was successfully verified.",
+        category: "service",
+        campId: camp.id,
+        status: "resolved",
+        response: "Resolved on-site by field volunteer team.",
+        createdAt: new Date(Date.now() - 3600000 * 24),
+      },
+    ];
+  }
+
+  // Default / Sindh / Badin / Other
+  return [
+    {
+      id: 301,
+      code: "CMP-2026-00020",
+      citizenName: "Sakina Bibi",
+      phone: "0300 1112233",
+      message: "Food pack was missing clean drinking water bottles promised with delivery in Talhar.",
+      category: "delivery",
+      campId: camp.id,
+      status: "open",
+      response: null,
+      createdAt: new Date(Date.now() - 3600000 * 5),
+    },
+    {
+      id: 302,
+      code: "CMP-2026-00021",
+      citizenName: "Nazir Ahmed",
+      phone: "0311 2223344",
+      message: "Volunteer arrived 2 hours after the promised time due to flooded road.",
+      category: "service",
+      campId: camp.id,
+      status: "in_progress",
+      response: null,
+      createdAt: new Date(Date.now() - 3600000 * 14),
+    },
+    {
+      id: 303,
+      code: "CMP-2026-00022",
+      citizenName: "Mai Jannat",
+      phone: "0333 4445566",
+      message: "Wrong medicine delivered, needed pediatric zinc & ORS for infant.",
+      category: "medical",
+      campId: camp.id,
+      status: "resolved",
+      response: "Corrected same day. Pediatric ORS sachets delivered by volunteer.",
+      createdAt: new Date(Date.now() - 3600000 * 36),
+    },
+  ];
+}
+

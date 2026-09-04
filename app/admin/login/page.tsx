@@ -56,16 +56,16 @@ export default function AdminLoginPage() {
 
       <div className="relative flex min-h-dvh flex-col px-5 pb-8 pt-6">
         <div className="flex items-center justify-between">
+          <span className="rounded-full bg-white/80 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-ink shadow-xs backdrop-blur-sm">
+            Admin Portal
+          </span>
           <Link
             href="/"
             className="inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-[11px] font-bold text-ink shadow-xs backdrop-blur-sm transition hover:bg-white active:scale-95"
           >
             <IconChevronLeft className="h-3.5 w-3.5" />
-            Citizen Home
+            Home
           </Link>
-          <span className="rounded-full bg-white/80 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-ink shadow-xs backdrop-blur-sm">
-            Admin Portal
-          </span>
         </div>
 
         <header className="mt-3 flex flex-col items-center">
@@ -87,13 +87,6 @@ export default function AdminLoginPage() {
           </p>
 
           <AdminLoginForm />
-
-          <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-[11.5px]">
-            <Link href="/" className="font-bold text-sky-600 hover:underline">
-              ← Return to Citizen Home
-            </Link>
-            <span className="text-slate-400">Headquarters</span>
-          </div>
         </main>
 
         <section

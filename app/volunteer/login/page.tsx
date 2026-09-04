@@ -33,16 +33,16 @@ export default function VolunteerLoginPage() {
         />
         <div className="absolute inset-x-0 top-0 flex flex-col items-center bg-gradient-to-b from-white/90 via-white/50 to-transparent px-5 pb-10 pt-7">
           <div className="flex w-full items-center justify-between">
+            <span className="rounded-full bg-white/80 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-channel shadow-xs backdrop-blur-sm">
+              Volunteer
+            </span>
             <Link
               href="/"
               className="inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-[11px] font-bold text-ink shadow-xs backdrop-blur-sm transition hover:bg-white active:scale-95"
             >
               <IconChevronLeft className="h-3.5 w-3.5" />
-              Citizen Home
+              Home
             </Link>
-            <span className="rounded-full bg-white/80 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-channel shadow-xs backdrop-blur-sm">
-              Volunteer
-            </span>
           </div>
 
           <p className="mt-2 font-display text-[20px] font-bold tracking-tight text-ink">
@@ -59,13 +59,6 @@ export default function VolunteerLoginPage() {
         <p className="mt-1 text-[13px] text-slate-500">Login to view your assigned tasks</p>
 
         <VolunteerLoginForm />
-
-        <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-[11.5px]">
-          <Link href="/" className="font-bold text-channel hover:underline">
-            ← Return to Citizen Home
-          </Link>
-          <span className="text-slate-400">Flood Relief Portal</span>
-        </div>
 
         <section className="mt-7 grid grid-cols-3 gap-2.5" aria-label="Why volunteer on RippleNet">
           {features.map(({ title, desc, Icon }) => (
