@@ -511,8 +511,12 @@ export function StockList({
 
       {/* Interactive 3-Lines Filter & Sort Bottom Sheet / Drawer */}
       {filterDrawerOpen && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 backdrop-blur-xs animate-fade-in">
+        <div
+          onClick={() => setFilterDrawerOpen(false)}
+          className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 backdrop-blur-xs animate-fade-in"
+        >
           <div
+            onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label="Filter and Sort Stock"

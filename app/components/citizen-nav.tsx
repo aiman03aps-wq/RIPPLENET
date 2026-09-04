@@ -7,7 +7,7 @@ import {
   IconGlobe,
   IconHome,
   IconPhone,
-  IconWhatsApp,
+  IconMic,
   IconX,
 } from "./icons";
 import { useLanguage } from "./language-context";
@@ -133,24 +133,23 @@ export function CitizenNav({ active }: { active?: CitizenTab }) {
 
               <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                  <IconWhatsApp className="h-[22px] w-[22px]" />
+                  <IconMic className="h-[22px] w-[22px]" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                    {t("whatsapp")}
+                    {t("sendVoiceNote")}
                   </p>
-                  <p className="mt-0.5 text-[15px] font-bold tabular-nums text-ink">
-                    +92 300 1234567
+                  <p className="mt-0.5 text-[13.5px] font-bold text-ink">
+                    7 Languages AI Voice SOS
                   </p>
                 </div>
-                <a
-                  href="https://wa.me/923001234567"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-white shadow-md transition active:scale-95"
+                <Link
+                  href="/sos/audio"
+                  onClick={() => setContactOpen(false)}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600 text-white shadow-md transition active:scale-95"
                 >
-                  <IconWhatsApp className="h-[18px] w-[18px]" />
-                </a>
+                  <IconMic className="h-[18px] w-[18px]" />
+                </Link>
               </div>
 
               <div className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
