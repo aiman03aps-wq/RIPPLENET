@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { nearestDistrict } from "../../lib/pakistan-districts";
 
-const FALLBACK = { lat: 24.6561, lng: 68.8368 };
+const FALLBACK = { lat: 33.5973, lng: 73.0645 };
 
 export type LocationSource = "locating" | "gps" | "fallback";
 

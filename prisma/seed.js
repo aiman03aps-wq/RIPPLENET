@@ -69,18 +69,11 @@ async function main() {
   const requests = [
     // --- Rawalpindi / Islamabad Region Requests ---
     {
-      code: "RIP-2026-00001", citizenName: "Ghulam Hussain", phone: "0300 8765432", type: "medical", priority: "critical",
+      code: "RIP-2026-00001", citizenName: "Fatima Bibi", phone: "0300 8765432", type: "medical", priority: "critical",
       needs: JSON.stringify(["High Fever", "Water Purification Tabs", "Children Under 5"]),
       district: "Rawalpindi", lat: 33.5973, lng: 73.0645, location: "Liaquat Bagh, Murree Road, Rawalpindi",
       peopleCount: 4, status: "in_transit", volunteerId: hamza.id, campId: rwpCamp.id,
       assignedAt: daysAgo(0, 3), startedAt: daysAgo(0, 1), createdAt: daysAgo(0, 4),
-    },
-    {
-      code: "RIP-2026-00002", citizenName: "Fatima Bibi", phone: "0333 5556661", type: "food", priority: "high",
-      needs: JSON.stringify(["Food Packs", "Clean Water Rations"]),
-      district: "Rawalpindi", lat: 33.585, lng: 73.09, location: "Nullah Lai Sector, Raja Bazaar, Rawalpindi",
-      peopleCount: 6, status: "assigned", volunteerId: hamza.id, campId: rwpCamp.id,
-      assignedAt: daysAgo(0, 2), createdAt: daysAgo(0, 6),
     },
     {
       code: "RIP-2026-00003", citizenName: "Allah Dino", phone: "0345 1112223", type: "water", priority: "high",
@@ -94,14 +87,15 @@ async function main() {
       district: "Rawalpindi", lat: 33.61, lng: 73.08, location: "Dhok Kala Khan, Rawalpindi",
       peopleCount: 5, status: "pending", campId: rwpCamp.id, createdAt: daysAgo(0, 5),
     },
-    {
-      code: "RIP-2026-00005", citizenName: "Muhammad Yousuf", phone: "0302 7778889", type: "medical", priority: "critical",
-      needs: JSON.stringify(["High Fever", "Diarrhea", "Elderly Patient"]),
-      district: "Rawalpindi", lat: 33.59, lng: 73.05, location: "Saddar / Commercial Market, Rawalpindi",
-      peopleCount: 3, status: "pending", campId: rwpCamp.id, createdAt: daysAgo(0, 1),
-    },
 
     // --- Nowshera Region Requests ---
+    {
+      code: "RIP-2026-00002", citizenName: "Bashir Ahmed", phone: "0333 5556661", type: "rescue", priority: "critical",
+      needs: JSON.stringify(["Boat Rescue", "Clean Water"]),
+      district: "Nowshera", lat: 34.0153, lng: 71.9747, location: "Kabul River Sector, Nowshera",
+      peopleCount: 6, status: "assigned", campId: nowsheraCamp.id,
+      assignedAt: daysAgo(0, 2), createdAt: daysAgo(0, 6),
+    },
     {
       code: "RIP-2026-00010", citizenName: "Bashir Ahmed", phone: "0333 5556661", type: "rescue", priority: "critical",
       needs: JSON.stringify(["Boat Rescue", "Clean Water"]),
@@ -119,6 +113,12 @@ async function main() {
 
     // --- Badin Region Requests ---
     {
+      code: "RIP-2026-00005", citizenName: "Muhammad Yousuf", phone: "0302 7778889", type: "medical", priority: "critical",
+      needs: JSON.stringify(["High Fever", "Diarrhea", "Elderly Patient"]),
+      district: "Badin", lat: 24.6833, lng: 68.7667, location: "Kadhan, Badin",
+      peopleCount: 3, status: "pending", campId: badinCamp.id, createdAt: daysAgo(0, 1),
+    },
+    {
       code: "RIP-2026-00020", citizenName: "Abdul Rehman", phone: "0300 4447778", type: "rescue", priority: "critical",
       needs: JSON.stringify(["Boat Rescue", "Elderly Patient"]),
       district: "Badin", lat: 24.7667, lng: 68.9333, location: "Pangrio, Badin",
@@ -133,6 +133,13 @@ async function main() {
     },
 
     // --- Lahore Region Requests ---
+    {
+      code: "RIP-2026-00008", citizenName: "Saima", phone: "0345 3336669", type: "water", priority: "medium",
+      needs: JSON.stringify(["Clean Water"]),
+      district: "Lahore", lat: 31.48, lng: 74.32, location: "Model Town, Ferozepur Road, Lahore",
+      peopleCount: 4, status: "resolved", campId: lahoreCamp.id,
+      createdAt: daysAgo(0, 8),
+    },
     {
       code: "RIP-2026-00030", citizenName: "Tariq Mehmood", phone: "0300 1234567", type: "medical", priority: "critical",
       needs: JSON.stringify(["High Fever", "Medical First Aid"]),

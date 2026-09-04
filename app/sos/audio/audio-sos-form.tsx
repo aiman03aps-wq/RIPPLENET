@@ -838,9 +838,9 @@ export function AudioSosForm() {
               <span>
                 Dispatch Location:{" "}
                 <strong className="text-ink">
-                  {districtName ? districtName.split(",")[0] : "Badin District Centre"}
+                  {districtName ? districtName.split(",")[0] : "Rawalpindi Relief Sector"}
                 </strong>{" "}
-                (Lat: {coords?.lat?.toFixed(3) ?? "24.656"}, Lng: {coords?.lng?.toFixed(3) ?? "68.836"})
+                (Lat: {coords?.lat?.toFixed(3) ?? "33.597"}, Lng: {coords?.lng?.toFixed(3) ?? "73.065"})
               </span>
             </div>
           </div>
