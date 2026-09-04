@@ -51,14 +51,7 @@ export default function LoginPage() {
 
             <LoginForm />
 
-            <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-[11.5px]">
-              <Link href="/" className="font-bold text-channel hover:underline">
-                ← Return to Citizen Home
-              </Link>
-              <span className="text-slate-400">Flood Relief Portal</span>
-            </div>
-
-            <p className="mt-4 text-center text-[11px] font-medium text-slate-400">
+            <p className="mt-6 text-center text-[11px] font-medium text-slate-400">
               Serving humanity in times of crisis
             </p>
           </div>

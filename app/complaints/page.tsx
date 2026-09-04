@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthGuard } from "../components/auth-guard";
 import { IconChevronLeft } from "../components/icons";
+import { CampHeader } from "../components/camp-header";
 import { StaffNav } from "../components/staff-nav";
 import { ComplaintsList, type ComplaintView } from "./complaints-list";
 import { CitizenComplaintClient } from "./citizen-complaint-client";
 import { prisma } from "../../lib/db";
 import { getSession } from "../../lib/session";
-import { mergeCamps } from "@/lib/camps";
+import { mergeCamps, getMockComplaintsForCamp, type CampRecord } from "@/lib/camps";
 
 export const dynamic = "force-dynamic";
 
@@ -15,50 +16,73 @@ export const metadata: Metadata = {
   title: "Lodge Complaint — RippleNet AI",
 };
 
-export default async function ComplaintsPage() {
+export default async function ComplaintsPage(props: {
+  searchParams?: Promise<{ campId?: string }>;
+}) {
   const session = await getSession();
 
   // If Camp Manager is logged in, show Camp Manager complaints triage
   if (session && session.role === "camp_manager") {
-    const [camp, complaints] = await Promise.all([
-      session.campId ? prisma.camp.findUnique({ where: { id: session.campId } }) : null,
-      prisma.complaint.findMany({
-        where: { campId: session.campId ?? -1 },
-        orderBy: { createdAt: "desc" },
-      }),
-    ]);
+    const searchParams = props.searchParams ? await props.searchParams : {};
+    const qCampId = searchParams.campId ? Number(searchParams.campId) : null;
 
-    const views: ComplaintView[] = complaints.map((c) => ({
-      id: c.id,
-      code: c.code,
-      citizenName: c.citizenName,
-      message: c.message,
-      category: c.category,
-      status: c.status,
-      response: c.response,
-      createdAt: c.createdAt.toISOString(),
-    }));
+    let dbCamps: any[] = [];
+    try {
+      dbCamps = await prisma.camp.findMany({
+        orderBy: [{ province: "asc" }, { name: "asc" }],
+      });
+    } catch (e) {
+      console.warn("Could not query camps for /complaints:", e);
+    }
+
+    const allCamps = mergeCamps(dbCamps);
+    const effectiveCampId = qCampId || session.campId || allCamps[0]?.id || 101;
+    const currentCamp = allCamps.find((c) => c.id === effectiveCampId) || allCamps[0];
+
+    let dbComplaints: any[] = [];
+    try {
+      dbComplaints = await prisma.complaint.findMany({
+        where: {
+          OR: [
+            { campId: currentCamp.id },
+            { campId: session.campId ?? undefined },
+          ],
+        },
+        orderBy: { createdAt: "desc" },
+      });
+    } catch (e) {
+      console.warn("Could not query complaints:", e);
+    }
+
+    let finalComplaints = dbComplaints;
+    if (finalComplaints.length === 0) {
+      finalComplaints = getMockComplaintsForCamp(currentCamp);
+    }
+
+    const views: ComplaintView[] = finalComplaints.map((c) => {
+      const created = c.createdAt instanceof Date ? c.createdAt.toISOString() : new Date(c.createdAt || Date.now()).toISOString();
+      return {
+        id: c.id,
+        code: c.code,
+        citizenName: c.citizenName,
+        message: c.message,
+        category: c.category,
+        status: c.status,
+        response: c.response ?? null,
+        createdAt: created,
+      };
+    });
 
     return (
       <AuthGuard role="camp_manager" loginHref="/login">
         <div className="relative mx-auto min-h-dvh w-full max-w-[480px] bg-paper shadow-xl">
-          <header className="flex items-center gap-3 px-5 pt-7">
-            <Link
-              href="/queue"
-              aria-label="Back to queue"
-              className="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink"
-            >
-              <IconChevronLeft className="h-6 w-6" />
-            </Link>
-            <div className="min-w-0 leading-tight">
-              <h1 className="font-display text-[20px] font-bold tracking-tight text-ink">
-                Camp Complaints
-              </h1>
-              <p className="mt-0.5 text-[12px] font-medium text-slate-500">
-                {camp ? `${camp.district} Health Camp` : "Health Camp"}
-              </p>
-            </div>
-          </header>
+          <CampHeader
+            campName={currentCamp.name}
+            subtitle="Camp Complaints & Triage"
+            currentCamp={currentCamp}
+            allCamps={allCamps}
+            basePath="/complaints"
+          />
 
           <main className="pb-[110px]">
             <ComplaintsList complaints={views} />
