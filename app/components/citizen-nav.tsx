@@ -28,11 +28,17 @@ const navItems = [
   { id: "language" as const, labelKey: "language", Icon: IconGlobe },
 ];
 
+const DEFAULT_CAMP: NavCamp = {
+  name: "Alkhidmat Relief Camp - Nowshera (Kabul River Sector)",
+  phone: "0923 611223",
+  district: "Nowshera",
+};
+
 export function CitizenNav({ active, camp }: { active?: CitizenTab; camp?: NavCamp }) {
   const { lang, setLang, t, openPicker, setOpenPicker } = useLanguage();
   const [contactOpen, setContactOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
-  const [activeCamp, setActiveCamp] = useState<NavCamp | null>(camp ?? null);
+  const [activeCamp, setActiveCamp] = useState<NavCamp>(camp ?? DEFAULT_CAMP);
   const showLang = langOpen || openPicker;
   const closeLang = () => { setLangOpen(false); setOpenPicker(false); };
 
@@ -47,7 +53,7 @@ export function CitizenNav({ active, camp }: { active?: CitizenTab; camp?: NavCa
       const qDist = params.get("district");
       const qLat = params.get("lat");
       const qLng = params.get("lng");
-      const qCode = params.get("code");
+      const qCode = params.get("code") || localStorage.getItem("citizen_last_request");
 
       if (qCode && !qDist && !qLat) {
         fetch(`/api/requests/${encodeURIComponent(qCode)}`)
@@ -68,6 +74,7 @@ export function CitizenNav({ active, camp }: { active?: CitizenTab; camp?: NavCa
       let url = "/api/camps?limit=1";
       if (qDist) url += `&district=${encodeURIComponent(qDist)}`;
       else if (qLat && qLng) url += `&lat=${qLat}&lng=${qLng}`;
+      else url += "&district=Nowshera";
 
       fetch(url)
         .then((r) => r.json())
