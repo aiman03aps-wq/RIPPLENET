@@ -14,9 +14,55 @@ import {
   IconCheck,
   IconSparkles,
   IconMic,
+  IconClock,
+  IconSearch,
 } from "../components/icons";
 import { Translated } from "../components/citizen-translated";
 import { useCitizenLocation } from "../components/use-citizen-location";
+
+interface SampleRequest {
+  code: string;
+  name: string;
+  district: string;
+  status: string;
+  tone: string;
+  tag: string;
+}
+
+const SAMPLE_REQUESTS: SampleRequest[] = [
+  {
+    code: "RIP-2026-00001",
+    name: "Fatima Bibi",
+    district: "Rawalpindi",
+    status: "In Transit",
+    tone: "bg-violet-50 text-violet-700 ring-violet-200",
+    tag: "Medical & Clean Water Dispatched",
+  },
+  {
+    code: "RIP-2026-00002",
+    name: "Bashir Ahmed",
+    district: "Nowshera",
+    status: "Assigned",
+    tone: "bg-sky-50 text-sky-700 ring-sky-200",
+    tag: "Evacuation Boat Assigned",
+  },
+  {
+    code: "RIP-2026-00005",
+    name: "Muhammad Yousuf",
+    district: "Badin",
+    status: "Pending Triage",
+    tone: "bg-rose-50 text-rose-700 ring-rose-200",
+    tag: "Critical Diarrhea/Fever",
+  },
+  {
+    code: "RIP-2026-00008",
+    name: "Saima",
+    district: "Lahore",
+    status: "Resolved",
+    tone: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    tag: "Relief Delivered",
+  },
+];
 
 export function SosChannelsClient() {
   const router = useRouter();
@@ -144,6 +190,67 @@ export function SosChannelsClient() {
           </span>
           <IconChevronRight className="h-5 w-5 shrink-0 text-slate-300" />
         </a>
+      </section>
+
+      {/* Track SOS Request Quick-Launcher */}
+      <section className="mt-4 px-5">
+        <Link
+          href="/status"
+          className="flex items-center gap-3.5 rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50/90 via-sky-50/40 to-white p-4 shadow-sm transition hover:border-sky-300 active:scale-[0.99] group"
+        >
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-ink text-white shadow-sm group-hover:bg-channel transition">
+            <IconClock className="h-6 w-6" />
+          </span>
+          <span className="min-w-0 flex-1 leading-tight">
+            <span className="flex items-center gap-2">
+              <span className="font-display text-[15px] font-bold text-ink">Track My Request</span>
+              <span className="rounded-full bg-emerald-100 px-2 py-[3px] text-[9.5px] font-bold text-emerald-800">
+                Live Status
+              </span>
+            </span>
+            <span className="mt-1 block text-[12px] text-slate-500">
+              Already submitted an SOS? Track live dispatch, rescue route &amp; volunteer
+            </span>
+          </span>
+          <IconChevronRight className="h-5 w-5 shrink-0 text-slate-300 group-hover:text-channel transition" />
+        </Link>
+      </section>
+
+      {/* Sample Live Requests Quick-Selector */}
+      <section className="mt-4 px-5">
+        <div className="rounded-3xl border border-sky-100 bg-gradient-to-b from-white to-sky-50/50 p-4 shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <div className="flex items-center gap-1.5">
+              <IconSparkles className="h-4 w-4 text-channel" />
+              <p className="font-display text-[13px] font-bold text-ink">Sample Live Requests</p>
+            </div>
+            <span className="text-[10.5px] font-semibold text-slate-400">1-Tap to Inspect</span>
+          </div>
+
+          <div className="mt-3 space-y-2">
+            {SAMPLE_REQUESTS.map((s) => (
+              <button
+                key={s.code}
+                type="button"
+                onClick={() => router.push(`/status?code=${encodeURIComponent(s.code)}`)}
+                className="flex w-full items-center justify-between rounded-2xl border border-slate-100 bg-white p-3 text-left shadow-xs transition-all hover:border-sky-300 hover:bg-sky-50/40 active:scale-[0.99]"
+              >
+                <div className="min-w-0 flex-1 leading-tight">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[12.5px] font-bold text-ink">{s.code}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ring-1 ${s.tone}`}>
+                      {s.status}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    {s.name} · {s.district} · <span className="font-medium text-slate-700">{s.tag}</span>
+                  </p>
+                </div>
+                <IconChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
+              </button>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* USSD Keypad Interactive Dialog */}
