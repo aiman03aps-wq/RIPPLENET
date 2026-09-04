@@ -7,9 +7,21 @@ import { mergeCamps } from "@/lib/camps";
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const lat = Number(url.searchParams.get("lat"));
-  const lng = Number(url.searchParams.get("lng"));
-  const hasPoint = Number.isFinite(lat) && Number.isFinite(lng);
+  const districtParam = url.searchParams.get("district")?.trim();
+  const rawLat = url.searchParams.get("lat");
+  const rawLng = url.searchParams.get("lng");
+  let lat = Number(rawLat);
+  let lng = Number(rawLng);
+  let hasPoint = Number.isFinite(lat) && Number.isFinite(lng);
+
+  if (!hasPoint && districtParam) {
+    const d = findDistrict(districtParam);
+    if (d) {
+      lat = d.lat;
+      lng = d.lng;
+      hasPoint = true;
+    }
+  }
 
   let dbCamps: any[] = [];
   try {
@@ -40,8 +52,23 @@ export async function GET(req: NextRequest) {
       : null,
   }));
 
-  if (hasPoint) {
+  if (districtParam) {
+    const matches = result.filter((c) => c.district.toLowerCase() === districtParam.toLowerCase());
+    const others = result.filter((c) => c.district.toLowerCase() !== districtParam.toLowerCase());
+    if (hasPoint) {
+      matches.sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0));
+      others.sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0));
+    }
+    result = [...matches, ...others];
+  } else if (hasPoint) {
     result = result.sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0));
+  } else {
+    // Default proximity sort against Central Relief HQ (Rawalpindi/Islamabad)
+    result = result.sort(
+      (a, b) =>
+        haversineKm({ lat: 33.5973, lng: 73.0645 }, { lat: a.lat, lng: a.lng }) -
+        haversineKm({ lat: 33.5973, lng: 73.0645 }, { lat: b.lat, lng: b.lng })
+    );
   }
 
   return Response.json({ camps: result, total: result.length });

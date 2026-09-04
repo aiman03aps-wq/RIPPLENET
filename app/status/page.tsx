@@ -185,6 +185,24 @@ export default async function StatusPage(props: {
         camp: { id: 205, name: "Alkhidmat Relief Camp - Nowshera (Kabul River Sector)", district: "Nowshera", province: "Khyber Pakhtunkhwa", phone: "0923 611223", lat: 34.0153, lng: 71.9747 },
         volunteer: { id: 2, name: "Ayesha Malik (Field Volunteer - Nowshera Unit)", phone: "0321 4445566" },
       },
+      "RIP-2026-00011": {
+        id: 11,
+        code: "RIP-2026-00011",
+        citizenName: "Haleeman Bibi",
+        phone: "0313 9990001",
+        type: "food",
+        priority: "high",
+        needs: JSON.stringify(["Food Packs", "Dry Rations", "Clean Water"]),
+        district: "Nowshera",
+        location: "Pabbi, GT Road Bypass, Nowshera",
+        lat: 33.99,
+        lng: 71.85,
+        peopleCount: 7,
+        status: "pending",
+        createdAt: new Date(),
+        camp: { id: 205, name: "Alkhidmat Relief Camp - Nowshera (Kabul River Sector)", district: "Nowshera", province: "Khyber Pakhtunkhwa", phone: "0923 611223", lat: 34.0153, lng: 71.9747 },
+        volunteer: null,
+      },
       "RIP-2026-00005": {
         id: 5,
         code: "RIP-2026-00005",
@@ -554,9 +572,23 @@ export default async function StatusPage(props: {
         <div className="mt-3 space-y-2">
           {[
             {
+              code: "RIP-2026-00011",
+              name: "Haleeman Bibi",
+              district: "Nowshera",
+              location: "Pabbi, GT Road, Nowshera",
+              lat: 33.99,
+              lng: 71.85,
+              status: "Pending Triage",
+              tone: "bg-rose-50 text-rose-700 ring-rose-200",
+              tag: "Food & Shelter Needed",
+            },
+            {
               code: "RIP-2026-00001",
               name: "Fatima Bibi",
               district: "Rawalpindi",
+              location: "Liaquat Bagh, Rawalpindi",
+              lat: 33.5973,
+              lng: 73.0645,
               status: "In Transit",
               tone: "bg-violet-50 text-violet-700 ring-violet-200",
               tag: "Medical & Clean Water Dispatched",
@@ -565,6 +597,9 @@ export default async function StatusPage(props: {
               code: "RIP-2026-00002",
               name: "Bashir Ahmed",
               district: "Nowshera",
+              location: "Kabul River Sector, Nowshera",
+              lat: 34.0153,
+              lng: 71.9747,
               status: "Assigned",
               tone: "bg-sky-50 text-sky-700 ring-sky-200",
               tag: "Evacuation Boat Assigned",
@@ -573,6 +608,9 @@ export default async function StatusPage(props: {
               code: "RIP-2026-00005",
               name: "Muhammad Yousuf",
               district: "Badin",
+              location: "Kadhan, Badin",
+              lat: 24.6833,
+              lng: 68.7667,
               status: "Pending Triage",
               tone: "bg-rose-50 text-rose-700 ring-rose-200",
               tag: "Critical Diarrhea/Fever",
@@ -581,6 +619,9 @@ export default async function StatusPage(props: {
               code: "RIP-2026-00008",
               name: "Saima",
               district: "Lahore",
+              location: "Model Town, Lahore",
+              lat: 31.48,
+              lng: 74.32,
               status: "Resolved",
               tone: "bg-emerald-50 text-emerald-700 ring-emerald-200",
               tag: "Relief Delivered",
@@ -588,7 +629,7 @@ export default async function StatusPage(props: {
           ].map((s) => (
             <Link
               key={s.code}
-              href={`/status?code=${encodeURIComponent(s.code)}`}
+              href={`/status?code=${encodeURIComponent(s.code)}&district=${encodeURIComponent(s.district)}&lat=${s.lat}&lng=${s.lng}`}
               className={`flex w-full items-center justify-between rounded-2xl border bg-white p-3 text-left shadow-xs transition active:scale-[0.99] ${
                 s.code === request.code
                   ? "border-channel bg-sky-50/50 ring-2 ring-sky-100"
@@ -608,7 +649,7 @@ export default async function StatusPage(props: {
                   )}
                 </div>
                 <p className="mt-1 text-[11px] text-slate-500">
-                  {s.name} · {s.district} · <span className="font-medium text-slate-700">{s.tag}</span>
+                  {s.name} · <span className="font-semibold text-slate-700">{s.location}</span> · <span className="font-medium text-channel">{s.tag}</span>
                 </p>
               </div>
               <IconChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
