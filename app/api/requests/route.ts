@@ -4,6 +4,7 @@ import { getSession } from "@/lib/session";
 import { haversineKm } from "@/lib/geo";
 import { nearestDistrict } from "@/lib/pakistan-districts";
 import { parseNeeds } from "@/lib/needs";
+import { findNearestCamp } from "@/lib/camps";
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
@@ -77,17 +78,16 @@ export async function POST(req: NextRequest) {
     }
 
     const districtInfo = nearestDistrict(lat, lng);
+    const districtName = String(body.district ?? districtInfo?.name ?? "Rawalpindi");
 
     let camps: any[] = [];
     try {
       camps = await prisma.camp.findMany();
-    } catch {}
+    } catch (e) {
+      console.warn("Could not query DB camps:", e);
+    }
 
-    const nearest = camps.length > 0
-      ? camps
-          .map((c) => ({ camp: c, distanceKm: haversineKm({ lat, lng }, { lat: c.lat, lng: c.lng }) }))
-          .sort((a, b) => a.distanceKm - b.distanceKm)[0]
-      : null;
+    const nearest = findNearestCamp(lat, lng, camps);
 
     let lastNum = 10;
     try {
@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
           type,
           priority,
           needs: JSON.stringify(needs),
-          district: String(body.district ?? districtInfo?.name ?? "Badin"),
+          district: districtName,
           location: body.location ? String(body.location).slice(0, 200) : null,
           lat,
           lng,
@@ -134,26 +134,21 @@ export async function POST(req: NextRequest) {
         type,
         priority,
         needs: JSON.stringify(needs),
-        district: String(body.district ?? districtInfo?.name ?? "Badin"),
-        location: body.location ? String(body.location).slice(0, 200) : null,
+        district: districtName,
+        location: body.location ? String(body.location).slice(0, 200) : `${districtName} Relief Sector`,
         lat,
         lng,
         peopleCount,
         status: "pending",
-        camp: nearest?.camp ?? {
-          id: 1,
-          name: "Badin Relief Camp",
-          district: "Badin",
-          phone: "0800 22677",
-        },
+        camp: nearest.camp,
       };
     }
 
     return Response.json(
       {
         request: { ...request, needsList: needs },
-        routedToCamp: nearest?.camp?.name ?? "Badin Relief Camp",
-        distanceToCampKm: nearest ? Math.round(nearest.distanceKm * 10) / 10 : 3.4,
+        routedToCamp: nearest.camp.name,
+        distanceToCampKm: nearest.distanceKm,
       },
       { status: 201 }
     );
