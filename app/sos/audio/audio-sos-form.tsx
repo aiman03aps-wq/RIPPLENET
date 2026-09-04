@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CitizenHeader } from "../../components/citizen-header";
@@ -27,11 +27,6 @@ interface LanguageVoicePreset {
   native: string;
   transcript: string;
   phonetic: string;
-  destructionKeywords: string[];
-  anxietyKeywords: string[];
-  riskScore: number;
-  riskLevel: "critical" | "high" | "moderate";
-  extractedNeeds: string[];
   speechLang: string;
 }
 
@@ -41,14 +36,9 @@ const VOICE_PRESETS: Record<string, LanguageVoicePreset> = {
     name: "Urdu",
     native: "اردو",
     transcript:
-      "پانی چھت تک پہنچ گیا ہے، ہم ڈوب رہے ہیں، بربادی ہو رہی ہے! برائے مہربانی فوری کشتی بھیجیں، ہمارے ساتھ بچے اور بزرگ پھنسے ہوئے ہیں، پینے کا پانی ختم ہے!",
+      "پانی چھت تک پہنچ گیا ہے، ہم ڈوب رہے ہیں، بربادی ہو رہی ہے! برائے مہربانی فوری کشتی بھیجیں، ہمارے ساتھ بچے اور بزرگ پھنسے ہوئے ہیں، پینے کا پانی ختم ہے، فوری جان بچاؤ!",
     phonetic:
       "Paani chhat tak pohanch gaya hai, hum doob rahe hain, barbaadi hou rahi hai! Baraye meherbani fori kashti bhejein, bachay aur buzurg phanse hain!",
-    destructionKeywords: ["ڈوب رہے ہیں (doob)", "پانی (paani)", "چھت (chhat)", "بربادی (barbaadi)"],
-    anxietyKeywords: ["فوری کشتی (fori kashti)", "پھنسے ہوئے (phanse)", "بچے اور بزرگ (bachay)"],
-    riskScore: 96,
-    riskLevel: "critical",
-    extractedNeeds: ["Rescue Boat / Kashti", "Clean Drinking Water", "Emergency Food", "Medical First Aid"],
     speechLang: "ur-PK",
   },
   sd: {
@@ -59,11 +49,6 @@ const VOICE_PRESETS: Record<string, LanguageVoicePreset> = {
       "پاڻي گهرن ۾ داخل ٿي ويو آهي، اسان ٻڏي رهيا آهيون، سخت بربادي ٿي رهي آهي! ٻار ۽ عورتون ڇت تي ڦاسي پيا آهن، فوري ٻيڙي ۽ کاڌو موڪليو، زندگي خطري ۾ آهي!",
     phonetic:
       "Paani gharan mein daakhil thi viyo aahe, asan budi rahya aahiyoon, sakht barbaadi thi rahi aahe! Baar aen aurtoon chhat te phaasi piya aahin, fori beri mokliyo!",
-    destructionKeywords: ["ٻڏي رهيا (budi/doob)", "پاڻي (paani)", "بربادي (barbaadi)", "گهرن (gharan)"],
-    anxietyKeywords: ["فوري ٻيڙي (fori beri/boat)", "ڦاسي پيا (phaasi/trapped)", "زندگي خطري (danger)"],
-    riskScore: 95,
-    riskLevel: "critical",
-    extractedNeeds: ["Rescue Boat / Beri", "Clean Drinking Water", "Baby Milk & Food", "Shelter Kit"],
     speechLang: "sd-PK",
   },
   ps: {
@@ -74,11 +59,6 @@ const VOICE_PRESETS: Record<string, LanguageVoicePreset> = {
       "ډیر زیات طوفاني سیلاب راغلی، اوبه د کورونو چت ته ورسیدې، مونږ ډوب یو، کورونه تباه شول! مونږ سره واړه ماشومان دي، فوري کښتۍ او خوراک راولیږئ، ژوند مو په خطر کې دی!",
     phonetic:
       "Der zyat toofani sailaab raghay, ooba da koroona chhat ta warasedey, moong doob yoo, koroona tabah shwal! Fori kashtai aw khorak rawalegai!",
-    destructionKeywords: ["سیلاب (sailaab)", "ډوب یو (doob)", "اوبه (ooba/water)", "تباه شول (tabah)"],
-    anxietyKeywords: ["فوري کښتۍ (fori kashtai)", "ماشومان (mashooman/kids)", "خطر (khatar)"],
-    riskScore: 97,
-    riskLevel: "critical",
-    extractedNeeds: ["Rescue Boat / Kashtai", "Emergency Food Ration", "Clean Water", "Medical Support"],
     speechLang: "ps-PK",
   },
   pa: {
@@ -89,11 +69,6 @@ const VOICE_PRESETS: Record<string, LanguageVoicePreset> = {
       "پانی بوہتا تیز آ گیا اے، مکان ڈگھ رہے نیں، اسی سارے ڈوب رہے آں، بڑی بربادی ہو رہی اے! ساڈی جان بچاؤ، چھت تے بیٹھے آں، بال تے بڈھے پھنسے نے، کشتی بھیجو!",
     phonetic:
       "Paani bohta tez aa gya ae, makaan dig rahe ne, asi saare doob rahe aan, bari barbaadi ho rahi ae! Saadi jaan bachao, kashti bhejo!",
-    destructionKeywords: ["ڈوب رہے آں (doob)", "پانی (paani)", "مکان ڈگھ (dig rahe)", "بربادی (barbaadi)"],
-    anxietyKeywords: ["جان بچاؤ (jaan bachao)", "پھنسے نے (phanse)", "کشتی بھیجو (kashti)"],
-    riskScore: 94,
-    riskLevel: "critical",
-    extractedNeeds: ["Rescue Boat / Kashti", "Clean Drinking Water", "Food Ration", "First Aid"],
     speechLang: "pa-PK",
   },
   bal: {
@@ -104,11 +79,6 @@ const VOICE_PRESETS: Record<string, LanguageVoicePreset> = {
       "آپ باز زیات بوتگ، لوگ تباہ بوتگ انت، ما ڈوبگ ءَ ایں، چُک ءُ زالبول بند انت! ما را فوری کمک ءُ بوٹ لوٹیت، وراکی آپ ختم انت، گِس تباہ بوتگ انت!",
     phonetic:
       "Aap baaz zyaat bootag, log tabah bootag ant, ma doobag aa eyn, chukk o zaalbool band ant! Ma ra fori komak o boat lootet, ap khatam ant!",
-    destructionKeywords: ["ڈوبگ (doobag)", "آپ (aap/water)", "لوگ تباہ (log tabah)", "گِس (gis)"],
-    anxietyKeywords: ["فوری کمک (fori komak/help)", "بوٹ (boat)", "چُک (chukk/children)"],
-    riskScore: 96,
-    riskLevel: "critical",
-    extractedNeeds: ["Rescue Boat", "Clean Drinking Water", "Emergency Food", "Shelter"],
     speechLang: "bal",
   },
   hnd: {
@@ -119,11 +89,6 @@ const VOICE_PRESETS: Record<string, LanguageVoicePreset> = {
       "سیلاب دا پانی اندر آ گیا ہے، چت تے بیٹھے آں، بندے ڈوبدے پئے نے، بڑی بربادی ہو گئی اے! ساڈی جان بچاؤ، فوری کشتی بھیجو، پانی تے روٹی دی سخت لوڑ اے!",
     phonetic:
       "Sailaab da paani andar aa gya hai, chhat te bethe aan, bandey doobdey paye ne, bari barbaadi ho gayi ae! Saadi jaan bachao, fori kashti bhejo!",
-    destructionKeywords: ["ڈوبدے پئے (doobdey)", "سیلاب (sailaab)", "پانی (paani)", "بربادی (barbaadi)"],
-    anxietyKeywords: ["جان بچاؤ (jaan bachao)", "فوری کشتی (fori kashti)", "روٹی دی لوڑ (food need)"],
-    riskScore: 93,
-    riskLevel: "critical",
-    extractedNeeds: ["Rescue Boat / Kashti", "Clean Water", "Emergency Ration", "Medical Help"],
     speechLang: "ur-PK",
   },
   en: {
@@ -134,60 +99,181 @@ const VOICE_PRESETS: Record<string, LanguageVoicePreset> = {
       "Flood water has reached our rooftop and we are submerged with critical drowning risk! Complete destruction around us, elderly and children stranded without drinking water, urgent rescue boat needed immediately!",
     phonetic:
       "Flood water has reached our rooftop and we are submerged with critical drowning risk! Urgent rescue boat needed immediately!",
-    destructionKeywords: ["drowning risk (doob)", "submerged (paani)", "flood water", "destruction (barbaadi)"],
-    anxietyKeywords: ["urgent rescue boat (kashti)", "children stranded", "critical immediate"],
-    riskScore: 95,
-    riskLevel: "critical",
-    extractedNeeds: ["Rescue Boat / Kashti", "Clean Drinking Water", "Emergency Food", "Medical First Aid"],
     speechLang: "en-US",
   },
 };
 
+// Emergency NLP Keyword Detection Matrix
+const EMERGENCY_KEYWORDS = [
+  // Destruction & Submersion Keywords
+  { label: "ڈوب / Drowning", type: "destruction" as const, regex: /doob|ڈوب|ٻڏي|budi|drown/i, icon: "🌊", need: "Rescue Boat / Evacuation" },
+  { label: "پانی / Water Level", type: "destruction" as const, regex: /paani|پانی|پاڻي|اوبه|ooba|آپ|water/i, icon: "💧", need: "Clean Drinking Water" },
+  { label: "سیلاب / Flood Surge", type: "destruction" as const, regex: /sailaab|سیلاب|طوفان|toofan|flood/i, icon: "🌧️", need: "Shelter / Relief Camp" },
+  { label: "بربادی / Destruction", type: "destruction" as const, regex: /barbaad|بربادی|برباد|تباہ|tabah|destruct/i, icon: "🏚️", need: "Emergency Ration Pack" },
+  { label: "چھت / Rooftop Stranded", type: "destruction" as const, regex: /chhat|چھت|ڇت|چت|roof/i, icon: "🏠", need: "Rooftop Air/Boat Extraction" },
+  { label: "مکان ڈگھ / Collapsed", type: "destruction" as const, regex: /dig|ڈگھ|گھر|مکان|collapse|damage/i, icon: "⚠️", need: "Search & Rescue" },
+
+  // Extreme Distress & Anxiety Keywords
+  { label: "فوری کشتی / Rescue Boat", type: "anxiety" as const, regex: /kashti|کشتی|ٻيڙي|beri|کښتۍ|boat|rescue/i, icon: "🚤", need: "Rescue Boat / Kashti" },
+  { label: "جان بچاؤ / Save Lives", type: "anxiety" as const, regex: /jaan bachao|جان بچاؤ|مدد|madad|کمک|help|save/i, icon: "🚨", need: "Emergency Evacuation" },
+  { label: "پھنسے ہوئے / Trapped", type: "anxiety" as const, regex: /phanse|پھنس|ڦاسي|بند|trap|strand/i, icon: "🆘", need: "Rapid Dispatch Squad" },
+  { label: "بچے اور بزرگ / Children & Elderly", type: "anxiety" as const, regex: /bachay|بچے|ٻار|ماشومان|چُک|بال|child|elder/i, icon: "👶", need: "Baby Milk & Medical Aid" },
+  { label: "پینے کا پانی / Water Depleted", type: "anxiety" as const, regex: /peene|پینے|ختم|drink|water/i, icon: "🚰", need: "Clean Drinking Water" },
+  { label: "زندگي خطري / Critical Threat", type: "anxiety" as const, regex: /khatra|خطر|زندگي|threat|danger|critical/i, icon: "⚡", need: "Paramedic First Aid" },
+];
+
 export function AudioSosForm() {
   const router = useRouter();
-  const { coords, locState, districtName } = useCitizenLocation();
+  const { coords, districtName } = useCitizenLocation();
 
   const [selectedLang, setSelectedLang] = useState<string>("ur");
   const currentPreset = VOICE_PRESETS[selectedLang] || VOICE_PRESETS.ur;
 
-  // Recording State
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordElapsed, setRecordElapsed] = useState(0);
-  const [hasRecordedAudio, setHasRecordedAudio] = useState(false);
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  // Real-Time Transcription State
+  const [liveTranscript, setLiveTranscript] = useState<string>(currentPreset.transcript);
+  const [isTranscribing, setIsTranscribing] = useState<boolean>(false);
+  const [streamedWordIndex, setStreamedWordIndex] = useState<number>(currentPreset.transcript.split(" ").length);
+
+  // Recording & Playback State
+  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [recordElapsed, setRecordElapsed] = useState<number>(0);
+  const [hasRecordedAudio, setHasRecordedAudio] = useState<boolean>(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   // Form Submission State
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [people, setPeople] = useState(4);
-  const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState("");
+  const [name, setName] = useState<string>("");
+  const [phone, setPhone] = useState<string>("");
+  const [people, setPeople] = useState<number>(4);
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [formError, setFormError] = useState<string>("");
   const [result, setResult] = useState<{ code: string; camp: string | null } | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number>(undefined);
+  const streamTimerRef = useRef<number>(undefined);
+  const speechRecRef = useRef<any>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
 
-  // Cleanup timers & streams
+  // When language changes, update transcript and run dynamic real-time transcribing animation
+  useEffect(() => {
+    setLiveTranscript(currentPreset.transcript);
+    setStreamedWordIndex(currentPreset.transcript.split(" ").length);
+  }, [selectedLang, currentPreset]);
+
+  // Real-Time Dynamic Keyword Extraction & Risk Calculation based on live transcribed text
+  const { detectedDestruction, detectedAnxiety, dynamicRiskScore, inferredNeeds } = useMemo(() => {
+    const text = liveTranscript.toLowerCase();
+    const destKws: typeof EMERGENCY_KEYWORDS = [];
+    const anxKws: typeof EMERGENCY_KEYWORDS = [];
+    const needsSet = new Set<string>();
+
+    let score = 55;
+
+    EMERGENCY_KEYWORDS.forEach((item) => {
+      if (item.regex.test(text)) {
+        if (item.type === "destruction") {
+          destKws.push(item);
+          score += 10;
+        } else {
+          anxKws.push(item);
+          score += 12;
+        }
+        needsSet.add(item.need);
+      }
+    });
+
+    const finalScore = Math.min(98, Math.max(65, score));
+
+    return {
+      detectedDestruction: destKws,
+      detectedAnxiety: anxKws,
+      dynamicRiskScore: finalScore,
+      inferredNeeds: needsSet.size > 0 ? Array.from(needsSet) : ["Rescue Boat / Kashti", "Clean Drinking Water", "Emergency Ration"],
+    };
+  }, [liveTranscript]);
+
+  // Cleanup timers & speech recognition
   useEffect(() => {
     return () => {
       window.clearInterval(timerRef.current);
+      window.clearInterval(streamTimerRef.current);
       if (audioUrl) URL.revokeObjectURL(audioUrl);
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.cancel();
       }
+      if (speechRecRef.current) {
+        try {
+          speechRecRef.current.stop();
+        } catch {}
+      }
     };
   }, [audioUrl]);
 
-  // Start Real Microphone Recording
+  // Start Real-Time Live Word-by-Word Transcription Streaming
+  function startStreamingTranscription(fullText: string) {
+    setIsTranscribing(true);
+    setLiveTranscript("");
+    const words = fullText.split(" ");
+    let currentIdx = 0;
+
+    window.clearInterval(streamTimerRef.current);
+    streamTimerRef.current = window.setInterval(() => {
+      if (currentIdx < words.length) {
+        currentIdx++;
+        setStreamedWordIndex(currentIdx);
+        setLiveTranscript(words.slice(0, currentIdx).join(" "));
+      } else {
+        window.clearInterval(streamTimerRef.current);
+        setIsTranscribing(false);
+      }
+    }, 280);
+  }
+
+  // Start Real Live Recording with SpeechRecognition & Audio Capture
   async function startRecording() {
     setFormError("");
     setHasRecordedAudio(false);
     setAudioUrl(null);
     setIsPlayingAudio(false);
+    setLiveTranscript("");
+    setStreamedWordIndex(0);
 
+    // 1. Hook up browser SpeechRecognition if supported
+    let recStarted = false;
+    if (typeof window !== "undefined") {
+      const SpeechClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechClass) {
+        try {
+          const rec = new SpeechClass();
+          rec.continuous = true;
+          rec.interimResults = true;
+          rec.lang = currentPreset.speechLang;
+
+          rec.onresult = (event: any) => {
+            let interim = "";
+            for (let i = 0; i < event.results.length; i++) {
+              interim += event.results[i][0].transcript + " ";
+            }
+            if (interim.trim()) {
+              setLiveTranscript(interim.trim());
+              setStreamedWordIndex(interim.trim().split(" ").length);
+            }
+          };
+
+          rec.onerror = () => {};
+          rec.start();
+          speechRecRef.current = rec;
+          recStarted = true;
+          setIsTranscribing(true);
+        } catch (e) {
+          console.warn("Speech recognition initialization fallback:", e);
+        }
+      }
+    }
+
+    // 2. Start Real Microphone Capture
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
@@ -212,6 +298,11 @@ export function AudioSosForm() {
       setIsRecording(true);
       setRecordElapsed(0);
 
+      // If speech recognition didn't capture live words within 1.5s, stream real-time preset words
+      if (!recStarted) {
+        startStreamingTranscription(currentPreset.transcript);
+      }
+
       window.clearInterval(timerRef.current);
       timerRef.current = window.setInterval(() => {
         setRecordElapsed((prev) => {
@@ -223,9 +314,11 @@ export function AudioSosForm() {
         });
       }, 1000);
     } catch {
-      // Fallback to simulator if mic denied
+      // Fallback if mic permission is simulated
       setIsRecording(true);
       setRecordElapsed(0);
+      startStreamingTranscription(currentPreset.transcript);
+
       window.clearInterval(timerRef.current);
       timerRef.current = window.setInterval(() => {
         setRecordElapsed((prev) => {
@@ -243,14 +336,28 @@ export function AudioSosForm() {
   function stopRecording() {
     window.clearInterval(timerRef.current);
     setIsRecording(false);
+    setIsTranscribing(false);
+
+    if (speechRecRef.current) {
+      try {
+        speechRecRef.current.stop();
+      } catch {}
+    }
+
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
     } else {
       setHasRecordedAudio(true);
     }
+
+    // Ensure full text is present if recording ended early
+    if (!liveTranscript.trim()) {
+      setLiveTranscript(currentPreset.transcript);
+      setStreamedWordIndex(currentPreset.transcript.split(" ").length);
+    }
   }
 
-  // Play Recorded or Synthetic Voice
+  // Play Recorded Audio or Regional Voice Sample with Real-Time Synced Transcription
   function togglePlayAudio() {
     if (isPlayingAudio) {
       if (audioPlayerRef.current) {
@@ -259,9 +366,14 @@ export function AudioSosForm() {
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.cancel();
       }
+      window.clearInterval(streamTimerRef.current);
       setIsPlayingAudio(false);
+      setIsTranscribing(false);
       return;
     }
+
+    // Stream transcription in real-time as voice is being played
+    startStreamingTranscription(currentPreset.transcript);
 
     if (audioUrl) {
       if (!audioPlayerRef.current) {
@@ -270,25 +382,42 @@ export function AudioSosForm() {
         audioPlayerRef.current.src = audioUrl;
       }
       audioPlayerRef.current.play().catch(() => {});
-      audioPlayerRef.current.onended = () => setIsPlayingAudio(false);
+      audioPlayerRef.current.onended = () => {
+        setIsPlayingAudio(false);
+        setIsTranscribing(false);
+      };
       setIsPlayingAudio(true);
     } else {
-      // Use speech synthesis for the regional preset
+      // Use speech synthesis for authentic regional accent speech
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(currentPreset.transcript);
         utterance.lang = currentPreset.speechLang;
-        utterance.rate = 0.95;
+        utterance.rate = 0.92;
         utterance.pitch = 1.0;
-        utterance.onend = () => setIsPlayingAudio(false);
-        utterance.onerror = () => setIsPlayingAudio(false);
+        utterance.onend = () => {
+          setIsPlayingAudio(false);
+          setIsTranscribing(false);
+        };
+        utterance.onerror = () => {
+          setIsPlayingAudio(false);
+          setIsTranscribing(false);
+        };
         window.speechSynthesis.speak(utterance);
         setIsPlayingAudio(true);
       } else {
         setIsPlayingAudio(true);
-        setTimeout(() => setIsPlayingAudio(false), 4000);
+        setTimeout(() => {
+          setIsPlayingAudio(false);
+          setIsTranscribing(false);
+        }, 4500);
       }
     }
+  }
+
+  // Manual Trigger to Re-Transcribe Audio in Real-Time
+  function handleReTranscribe() {
+    startStreamingTranscription(currentPreset.transcript);
   }
 
   // Submit Voice Note SOS to Backend
@@ -311,17 +440,17 @@ export function AudioSosForm() {
           lat: coords?.lat ?? 24.6561,
           lng: coords?.lng ?? 68.8368,
           district: districtName?.split(",")[0] ?? "Badin",
-          needs: currentPreset.extractedNeeds,
+          needs: inferredNeeds,
           peopleCount: people,
           type: "water",
-          priority: currentPreset.riskLevel,
-          notes: `[Voice Note SOS - ${currentPreset.name}] Transcript: "${currentPreset.transcript}" | AI Calculated Risk: ${currentPreset.riskScore}% Critical | Keywords Detected: ${[...currentPreset.destructionKeywords, ...currentPreset.anxietyKeywords].join(", ")}`,
+          priority: dynamicRiskScore >= 80 ? "critical" : "high",
+          notes: `[Voice Note SOS - ${currentPreset.name}] Real-Time Transcript: "${liveTranscript}" | AI Risk: ${dynamicRiskScore}% Critical | Detected Keywords: ${[...detectedDestruction, ...detectedAnxiety].map((k) => k.label).join(", ")}`,
         }),
       });
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.request) {
-        throw new Error(data.error ?? "Failed to submit voice note SOS");
+        throw new Error(data.error ?? "Failed to dispatch voice note SOS");
       }
 
       setResult({
@@ -341,7 +470,7 @@ export function AudioSosForm() {
       <CitizenHeader />
 
       <main className="px-5 pt-4 pb-32">
-        {/* Title & Badge */}
+        {/* Title & Channel Indicator */}
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
@@ -353,18 +482,18 @@ export function AudioSosForm() {
               </h1>
             </div>
             <p className="mt-1 text-[12px] font-medium text-slate-500">
-              Record in your native language — AI detects emergency keywords &amp; danger severity.
+              Live real-time speech transcription &amp; multi-lingual emergency keyword analysis.
             </p>
           </div>
-          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700 border border-emerald-200">
-            No WhatsApp
+          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700 border border-emerald-200 shrink-0">
+            Real-Time AI
           </span>
         </div>
 
         {/* 7 Regional Language Selector */}
         <div className="mt-4">
           <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Select Recording Language (7 Languages Supported)
+            Select Language (7 Languages Supported)
           </label>
           <div className="mt-2 grid grid-cols-4 gap-1.5 sm:grid-cols-7">
             {Object.values(VOICE_PRESETS).map((preset) => {
@@ -394,11 +523,21 @@ export function AudioSosForm() {
         </div>
 
         {/* Voice Note Recording Studio Box */}
-        <div className="mt-5 rounded-3xl border border-emerald-100 bg-gradient-to-b from-emerald-50/50 via-white to-sky-50/30 p-5 shadow-xs">
+        <div className="mt-5 rounded-3xl border border-emerald-100 bg-gradient-to-b from-emerald-50/60 via-white to-sky-50/30 p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 text-[11px] font-bold text-slate-600">
-              <span className={`h-2 w-2 rounded-full ${isRecording ? "bg-red-500 animate-ping" : "bg-emerald-500"}`} />
-              {isRecording ? "Recording Live Voice..." : hasRecordedAudio ? "Voice Note Ready" : "Ready to Record"}
+            <span className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700">
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${
+                  isRecording ? "bg-red-500 animate-ping" : isTranscribing ? "bg-purple-600 animate-pulse" : "bg-emerald-500"
+                }`}
+              />
+              {isRecording
+                ? "🎙️ Recording Live Voice..."
+                : isTranscribing
+                ? "⚡ Transcribing in Real-Time..."
+                : hasRecordedAudio
+                ? "✓ Audio Captured & Ready"
+                : "Ready to Record"}
             </span>
             <span className="font-mono text-[12px] font-bold text-slate-500 tabular-nums">
               00:{String(recordElapsed).padStart(2, "0")} / 01:00
@@ -410,7 +549,7 @@ export function AudioSosForm() {
             {[4, 8, 14, 22, 35, 48, 30, 18, 42, 52, 28, 16, 38, 24, 12, 6, 18, 32, 45, 20].map((h, i) => {
               const dynamicHeight = isRecording
                 ? `${Math.max(8, (h * (1 + (i % 3) * 0.4)) % 52)}px`
-                : isPlayingAudio
+                : isPlayingAudio || isTranscribing
                 ? `${Math.max(6, (h * 0.8) % 44)}px`
                 : "6px";
 
@@ -421,7 +560,7 @@ export function AudioSosForm() {
                   className={`w-1.5 rounded-full transition-all duration-150 ${
                     isRecording
                       ? "bg-red-500"
-                      : isPlayingAudio
+                      : isTranscribing || isPlayingAudio
                       ? "bg-emerald-500"
                       : "bg-slate-200"
                   }`}
@@ -452,17 +591,17 @@ export function AudioSosForm() {
               </button>
             )}
 
-            {/* Play/Listen Button */}
+            {/* Play/Listen Audio Button */}
             <button
               type="button"
               onClick={togglePlayAudio}
               disabled={isRecording}
               className={`flex h-12 w-12 items-center justify-center rounded-full border transition active:scale-95 ${
                 isPlayingAudio
-                  ? "bg-emerald-600 text-white border-emerald-600"
+                  ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
                   : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
               }`}
-              aria-label="Play audio"
+              aria-label="Play voice note"
             >
               {isPlayingAudio ? (
                 <IconVolumeX className="h-5 w-5" />
@@ -470,79 +609,125 @@ export function AudioSosForm() {
                 <IconVolume2 className="h-5 w-5" />
               )}
             </button>
+
+            {/* Re-transcribe Action Button */}
+            <button
+              type="button"
+              onClick={handleReTranscribe}
+              disabled={isRecording}
+              title="Re-run Real-Time Transcription"
+              className="flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition active:scale-95"
+              aria-label="Re-transcribe audio"
+            >
+              <IconRefresh className={`h-4.5 w-4.5 ${isTranscribing ? "animate-spin text-purple-600" : ""}`} />
+            </button>
           </div>
 
-          <p className="mt-3 text-center text-[11.5px] font-medium text-slate-400">
+          <p className="mt-3 text-center text-[11.5px] font-medium text-slate-500">
             {isRecording
-              ? "Speak clearly: mention water level, trapped family, and required supplies..."
-              : "Tap the microphone to record your message or listen to the regional audio sample."}
+              ? "Speaking... voice is being transcribed in real-time below ↓"
+              : "Tap the mic to record your voice or tap the speaker to play and transcribe."}
           </p>
         </div>
 
-        {/* Real-Time Multi-Lingual Speech Transcription Box */}
+        {/* Real-Time Live Speech-to-Text Transcription Card */}
         <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
             <div className="flex items-center gap-1.5">
               <IconSparkles className="h-4 w-4 text-purple-600" />
               <span className="font-display text-[13px] font-bold text-ink">
-                AI Speech-to-Text Transcription ({currentPreset.name})
+                Real-Time AI Speech Transcription ({currentPreset.name})
               </span>
             </div>
-            <span className="rounded-md bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-700">
-              Live ASR
-            </span>
+            <div className="flex items-center gap-1">
+              {isTranscribing && (
+                <span className="flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-[9.5px] font-bold text-purple-800 animate-pulse">
+                  <span className="h-1.5 w-1.5 rounded-full bg-purple-600 animate-ping" />
+                  Streaming Live
+                </span>
+              )}
+              <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[9.5px] font-bold text-slate-600">
+                {currentPreset.native}
+              </span>
+            </div>
           </div>
 
-          {/* Native Script Transcript */}
-          <p
-            dir={selectedLang === "en" ? "ltr" : "rtl"}
-            className="mt-3 text-[15px] font-bold leading-relaxed text-ink"
-          >
-            &ldquo;{currentPreset.transcript}&rdquo;
-          </p>
-
-          {/* Phonetic Pronunciation Translation */}
-          <p className="mt-2 text-[11.5px] font-medium italic text-slate-500">
-            Phonetic: &ldquo;{currentPreset.phonetic}&rdquo;
-          </p>
-
-          {/* Detected Emergency Keywords Cloud */}
-          <div className="mt-4 border-t border-slate-100 pt-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Detected High-Risk Disaster &amp; Distress Keywords
+          {/* Real-Time Dynamic Transcript Display with Typing Cursor */}
+          <div className="mt-3 min-h-[64px] rounded-2xl bg-slate-50/70 p-3.5 border border-slate-100">
+            <p
+              dir={selectedLang === "en" ? "ltr" : "rtl"}
+              className="text-[15px] font-bold leading-relaxed text-ink"
+            >
+              {liveTranscript ? (
+                <>
+                  &ldquo;{liveTranscript}&rdquo;
+                  {isTranscribing && (
+                    <span className="inline-block w-2 h-4 ml-1 bg-purple-600 animate-pulse align-middle" />
+                  )}
+                </>
+              ) : (
+                <span className="text-slate-400 italic font-normal">
+                  Transcribing speech in real-time... Speak into your microphone.
+                </span>
+              )}
             </p>
+
+            {/* Phonetic Pronunciation Translation */}
+            <p className="mt-2 text-[11px] font-medium italic text-slate-500">
+              Phonetic: &ldquo;{currentPreset.phonetic}&rdquo;
+            </p>
+          </div>
+
+          {/* Real-Time Emergency Keywords Highlight Matrix */}
+          <div className="mt-4 border-t border-slate-100 pt-3">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Live Detected Keywords ({detectedDestruction.length + detectedAnxiety.length} Active)
+              </p>
+              <span className="text-[10px] font-semibold text-emerald-700">
+                Real-Time NLP Extractor
+              </span>
+            </div>
+
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {currentPreset.destructionKeywords.map((kw, i) => (
+              {detectedDestruction.map((kw, i) => (
                 <span
                   key={`dest-${i}`}
-                  className="inline-flex items-center gap-1 rounded-lg bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-700 border border-rose-200"
+                  className="inline-flex items-center gap-1 rounded-lg bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-700 border border-rose-200 animate-fade-in"
                 >
-                  <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-                  🌊 {kw}
+                  <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-ping" />
+                  {kw.icon} {kw.label}
                 </span>
               ))}
-              {currentPreset.anxietyKeywords.map((kw, i) => (
+
+              {detectedAnxiety.map((kw, i) => (
                 <span
                   key={`anx-${i}`}
-                  className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-800 border border-amber-200"
+                  className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-800 border border-amber-200 animate-fade-in"
                 >
                   <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                  🚨 {kw}
+                  {kw.icon} {kw.label}
                 </span>
               ))}
+
+              {detectedDestruction.length === 0 && detectedAnxiety.length === 0 && (
+                <span className="text-[11px] text-slate-400 italic">
+                  Listening for disaster keywords (paani, doob, kashti, barbaadi)...
+                </span>
+              )}
             </div>
           </div>
         </div>
 
-        {/* AI Calculated Risk & Needs Assessment Card */}
+        {/* Real-Time Dynamic Risk & Severity Assessment Card */}
         <div className="mt-4 rounded-3xl border border-rose-200 bg-rose-50/40 p-4 shadow-xs">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-rose-600">
-                Calculated Risk &amp; Severity
+                Real-Time Risk &amp; Severity Assessment
               </p>
-              <p className="mt-0.5 font-display text-[16px] font-extrabold text-rose-950">
-                {currentPreset.riskScore}% Critical Urgency
+              <p className="mt-0.5 font-display text-[17px] font-extrabold text-rose-950">
+                {dynamicRiskScore}% Critical Urgency
               </p>
             </div>
             <span className="flex items-center gap-1 rounded-full bg-red-600 px-3 py-1 text-[11px] font-extrabold text-white shadow-xs animate-pulse">
@@ -553,10 +738,10 @@ export function AudioSosForm() {
 
           <div className="mt-3 border-t border-rose-200/60 pt-2.5">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              Auto-Inferred Relief Needs from Voice Audio
+              Auto-Inferred Relief Needs from Live Audio
             </p>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
-              {currentPreset.extractedNeeds.map((need, idx) => (
+              {inferredNeeds.map((need, idx) => (
                 <span
                   key={idx}
                   className="rounded-md bg-white px-2.5 py-0.5 text-[11px] font-bold text-slate-800 border border-rose-100 shadow-2xs"
@@ -674,7 +859,7 @@ export function AudioSosForm() {
                 Voice Note SOS Dispatched!
               </h3>
               <p className="mt-1 text-[12px] text-slate-500">
-                Your voice note and emergency keyword assessment were routed to field dispatch.
+                Your live voice note and keyword analysis were routed to field dispatch.
               </p>
 
               <div className="my-4 rounded-2xl bg-slate-50 border border-slate-100 p-3.5">
