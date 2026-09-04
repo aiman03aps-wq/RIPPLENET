@@ -13,6 +13,9 @@ import {
   IconPackage,
   IconCheck,
   IconX,
+  IconPhone,
+  IconActivity,
+  IconUsers,
 } from "../../components/icons";
 import { AdminNav } from "../components/admin-nav";
 import { AdminHeader } from "../components/admin-header";
@@ -25,6 +28,11 @@ export interface CampView {
   name: string;
   district: string;
   province: string;
+  phone?: string;
+  capacity?: number;
+  occupancy?: number;
+  lat?: number;
+  lng?: number;
   status: string;
   requestCount: number;
   volunteerCount: number;
@@ -97,6 +105,8 @@ export function CampsRestockClient({
   const [priorityFilter, setPriorityFilter] = useState("");
   const [busyId, setBusyId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  const [selectedCamp, setSelectedCamp] = useState<CampView | null>(null);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [newCampName, setNewCampName] = useState("");
@@ -360,14 +370,15 @@ export function CampsRestockClient({
               {filteredCamps.map((camp) => (
                 <div
                   key={camp.id}
-                  className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-sm"
+                  onClick={() => setSelectedCamp(camp)}
+                  className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-sm cursor-pointer transition hover:border-sky-300 hover:shadow-md active:scale-[0.99] group"
                 >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-channel">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-channel group-hover:bg-sky-100 transition">
                     <IconTent className="h-6 w-6" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="truncate text-[13px] font-bold text-ink">{camp.name}</h3>
+                      <h3 className="truncate text-[13px] font-bold text-ink group-hover:text-channel transition">{camp.name}</h3>
                       <span
                         className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
                           camp.status === "full"
@@ -398,7 +409,7 @@ export function CampsRestockClient({
                       </div>
                     </div>
                   </div>
-                  <IconChevronRight className="h-5 w-5 shrink-0 text-slate-300" />
+                  <IconChevronRight className="h-5 w-5 shrink-0 text-slate-300 group-hover:text-channel group-hover:translate-x-0.5 transition" />
                 </div>
               ))}
               {filteredCamps.length === 0 && (
@@ -586,6 +597,163 @@ export function CampsRestockClient({
             >
               {adding ? "Adding camp…" : "Add Camp"}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Interactive Camp Details & Quick-Management Modal */}
+      {selectedCamp && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs animate-fade-in">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Camp details"
+            className="w-full max-w-[440px] max-h-[90vh] overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl animate-slide-up"
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3.5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-channel shadow-xs">
+                  <IconTent className="h-6 w-6" />
+                </div>
+                <div className="min-w-0">
+                  <span
+                    className={`inline-block rounded-full px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider ${
+                      selectedCamp.status === "full"
+                        ? "bg-terracotta/10 text-terracotta ring-1 ring-terracotta/20"
+                        : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
+                    }`}
+                  >
+                    {selectedCamp.status === "full" ? "At Full Capacity" : "Active & Operational"}
+                  </span>
+                  <h2 className="mt-1 font-display text-[16px] font-bold text-ink leading-tight">
+                    {selectedCamp.name}
+                  </h2>
+                  <p className="mt-0.5 text-[11.5px] font-medium text-slate-500">
+                    {selectedCamp.district} District, {selectedCamp.province}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedCamp(null)}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-ink transition active:scale-95"
+              >
+                <IconX className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Occupancy & Live Capacity Bar */}
+            <div className="mt-4 rounded-2xl bg-slate-50 border border-slate-100 p-3.5">
+              <div className="flex items-center justify-between text-[11.5px]">
+                <span className="font-semibold text-slate-500">Camp Capacity Utilization</span>
+                <span className="font-bold text-ink">
+                  {selectedCamp.occupancy ?? 280} / {selectedCamp.capacity ?? 500} Citizens
+                </span>
+              </div>
+              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    ((selectedCamp.occupancy ?? 280) / (selectedCamp.capacity ?? 500)) > 0.85
+                      ? "bg-amber-500"
+                      : "bg-channel"
+                  }`}
+                  style={{
+                    width: `${Math.min(100, Math.round(((selectedCamp.occupancy ?? 280) / (selectedCamp.capacity ?? 500)) * 100))}%`,
+                  }}
+                />
+              </div>
+              <p className="mt-1.5 text-right text-[10px] font-semibold text-slate-400">
+                {Math.round(((selectedCamp.occupancy ?? 280) / (selectedCamp.capacity ?? 500)) * 100)}% Sheltered Capacity
+              </p>
+            </div>
+
+            {/* Metrics Triplet Grid */}
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="rounded-2xl border border-slate-100 bg-white p-3 text-center shadow-xs">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Requests</p>
+                <p className="mt-1 font-display text-[18px] font-bold text-ink">{selectedCamp.requestCount}</p>
+                <p className="text-[10px] font-medium text-slate-500">In Queue</p>
+              </div>
+              <div className="rounded-2xl border border-slate-100 bg-white p-3 text-center shadow-xs">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Volunteers</p>
+                <p className="mt-1 font-display text-[18px] font-bold text-ink">{selectedCamp.volunteerCount}</p>
+                <p className="text-[10px] font-medium text-slate-500">On Duty</p>
+              </div>
+              <div className="rounded-2xl border border-slate-100 bg-white p-3 text-center shadow-xs">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Inventory</p>
+                <div className="mt-1 flex items-center justify-center">
+                  <span className={`rounded-md px-1.5 py-0.5 text-[11px] font-bold ${stockBadge(selectedCamp.stockStatus)}`}>
+                    {selectedCamp.stockStatus}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-[10px] font-medium text-slate-500">Supply Level</p>
+              </div>
+            </div>
+
+            {/* Direct Contact Phone */}
+            <div className="mt-3.5 flex items-center justify-between rounded-2xl border border-sky-100 bg-sky-50/60 p-3.5">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-channel shadow-xs">
+                  <IconPhone className="h-4 w-4" />
+                </span>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-channel">Base Coordinator Hotline</p>
+                  <p className="text-[13px] font-bold text-ink">{selectedCamp.phone ?? "051 5551234"}</p>
+                </div>
+              </div>
+              <a
+                href={`tel:${(selectedCamp.phone ?? "0515551234").replace(/\s+/g, "")}`}
+                className="flex h-8 items-center gap-1.5 rounded-xl bg-emerald-500 px-3 text-[11.5px] font-bold text-white shadow-sm transition hover:bg-emerald-600 active:scale-95"
+              >
+                <IconPhone className="h-3.5 w-3.5" />
+                Call Base
+              </a>
+            </div>
+
+            {/* Command & Management Quick Links */}
+            <div className="mt-4 flex flex-col gap-2">
+              <Link
+                href={`/queue?campId=${selectedCamp.id}`}
+                onClick={() => setSelectedCamp(null)}
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-channel font-display text-[13px] font-bold text-white shadow-md shadow-channel/20 transition hover:bg-sky-600 active:scale-98"
+              >
+                <span>View &amp; Manage Camp Dispatch Queue →</span>
+              </Link>
+
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  href={`/stock?campId=${selectedCamp.id}`}
+                  onClick={() => setSelectedCamp(null)}
+                  className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-[12px] font-bold text-slate-700 shadow-xs transition hover:bg-slate-50 active:scale-98"
+                >
+                  <IconPackage className="h-4 w-4 text-amber-500" />
+                  Camp Stock Items
+                </Link>
+
+                <Link
+                  href={`/admin/complaints?campId=${selectedCamp.id}`}
+                  onClick={() => setSelectedCamp(null)}
+                  className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-[12px] font-bold text-slate-700 shadow-xs transition hover:bg-slate-50 active:scale-98"
+                >
+                  <IconActivity className="h-4 w-4 text-rose-500" />
+                  Camp Feedback
+                </Link>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const c = selectedCamp;
+                  setSelectedCamp(null);
+                  setActiveTab("restock");
+                  setRestockQuery(c.name);
+                }}
+                className="mt-1 flex h-9 items-center justify-center rounded-xl bg-slate-100 text-[11.5px] font-bold text-slate-600 hover:bg-slate-200 transition"
+              >
+                Inspect Camp Restock Requests ({selectedCamp.name})
+              </button>
+            </div>
           </div>
         </div>
       )}
