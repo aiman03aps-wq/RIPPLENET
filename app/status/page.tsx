@@ -124,16 +124,7 @@ export default async function StatusPage(props: {
     </LanguageProvider>
   );
 
-  if (!code) {
-    return shell(
-      <TrackSearch />,
-      {
-        name: "Alkhidmat Relief Camp - Nowshera (Kabul River Sector)",
-        phone: "0923 611223",
-        district: "Nowshera",
-      }
-    );
-  }
+  if (!code) return shell(<TrackSearch />);
 
   let request: any = null;
   try {
