@@ -21,12 +21,20 @@ import {
   IconShield,
 } from "./icons";
 
+import { CampSwitcher, type SwitcherCamp } from "./camp-switcher";
+
 export function CampHeader({
   campName = "Alkhidmat Health Camp",
   subtitle = "Camp Manager Field Base",
+  currentCamp,
+  allCamps,
+  basePath = "/stock",
 }: {
   campName?: string;
   subtitle?: string;
+  currentCamp?: SwitcherCamp;
+  allCamps?: SwitcherCamp[];
+  basePath?: string;
 }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -55,10 +63,18 @@ export function CampHeader({
         </button>
 
         <div className="text-center leading-tight">
-          <p className="font-display text-[15.5px] font-bold tracking-tight text-ink flex items-center justify-center gap-1.5">
-            {campName}
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-channel animate-pulse" />
-          </p>
+          {currentCamp && allCamps && allCamps.length > 0 ? (
+            <CampSwitcher
+              currentCamp={currentCamp}
+              allCamps={allCamps}
+              basePath={basePath}
+            />
+          ) : (
+            <p className="font-display text-[15.5px] font-bold tracking-tight text-ink flex items-center justify-center gap-1.5">
+              {campName}
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-channel animate-pulse" />
+            </p>
+          )}
           <p className="text-[11px] font-medium text-slate-500">{subtitle}</p>
         </div>
 

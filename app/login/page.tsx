@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { Logo } from "../components/logo";
+import { IconChevronLeft } from "../components/icons";
 import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = {
-  title: "Login — RippleNet AI",
+  title: "Camp Manager Login — RippleNet AI",
 };
 
 export default function LoginPage() {
@@ -23,12 +25,21 @@ export default function LoginPage() {
       </div>
 
       <div className="relative flex min-h-dvh flex-col">
-        <header className="flex items-center gap-3 px-5 pt-8">
-          <Logo className="h-11 w-11 rounded-full bg-white shadow-lg" />
-          <div className="leading-tight">
-            <p className="font-display text-[17px] font-bold text-white">RippleNet AI</p>
-            <p className="text-[11px] font-medium text-white/70">Alkhidmat Health Camps</p>
+        <header className="flex items-center justify-between px-5 pt-8">
+          <div className="flex items-center gap-3">
+            <Logo className="h-11 w-11 rounded-full bg-white shadow-lg" />
+            <div className="leading-tight">
+              <p className="font-display text-[17px] font-bold text-white">RippleNet AI</p>
+              <p className="text-[11px] font-medium text-white/70">Alkhidmat Health Camps</p>
+            </div>
           </div>
+          <Link
+            href="/"
+            className="flex items-center gap-1 rounded-full bg-white/20 px-3 py-1.5 text-[11px] font-bold text-white backdrop-blur-md transition hover:bg-white/30 active:scale-95"
+          >
+            <IconChevronLeft className="h-3.5 w-3.5" />
+            Home
+          </Link>
         </header>
 
         <div className="mx-5 mb-7 mt-auto">
@@ -40,7 +51,14 @@ export default function LoginPage() {
 
             <LoginForm />
 
-            <p className="mt-6 text-center text-[11px] font-medium text-slate-400">
+            <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-[11.5px]">
+              <Link href="/" className="font-bold text-channel hover:underline">
+                ← Return to Citizen Home
+              </Link>
+              <span className="text-slate-400">Flood Relief Portal</span>
+            </div>
+
+            <p className="mt-4 text-center text-[11px] font-medium text-slate-400">
               Serving humanity in times of crisis
             </p>
           </div>

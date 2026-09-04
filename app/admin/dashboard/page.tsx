@@ -22,6 +22,7 @@ import {
 } from "../../components/icons";
 import { AdminNav } from "../components/admin-nav";
 import { AdminHeader } from "../components/admin-header";
+import { RecentActivitySection, type ActivityItem } from "./recent-activity-section";
 import { prisma } from "../../../lib/db";
 import { getSession } from "../../../lib/session";
 import { assessRisk } from "../../../lib/risk";
@@ -125,7 +126,7 @@ export default async function AdminDashboardPage() {
       prisma.complaint.count({ where: { status: { not: "resolved" } } }),
       prisma.request.findMany({
         orderBy: { createdAt: "desc" },
-        take: 4,
+        take: 25,
         include: {
           camp: { select: { name: true, district: true } },
           volunteer: { select: { name: true } },
@@ -191,18 +192,52 @@ export default async function AdminDashboardPage() {
   const avgCostPerBeneficiary = 3450;
   const totalAidValuationPkr = totalPeopleServiced * avgCostPerBeneficiary;
 
-  const activity = recentRequests.map((r) => {
-    const time = new Date(r.createdAt).toLocaleTimeString("en-US", {
+  const activityItems: ActivityItem[] = recentRequests.map((r) => {
+    const dateObj = new Date(r.createdAt);
+    const time = dateObj.toLocaleTimeString("en-US", {
       hour: "numeric",
       minute: "2-digit",
     });
-    if (r.status === "resolved")
-      return { title: "Request resolved", detail: r.camp?.name ?? "Camp", time, icon: IconCheck, iconBg: "bg-emerald-100 text-emerald-600" };
-    if (r.status === "in_transit")
-      return { title: "Delivery in transit", detail: r.volunteer?.name ?? r.camp?.name ?? "Camp", time, icon: IconTruck, iconBg: "bg-violet-100 text-violet-600" };
-    if (r.status === "assigned")
-      return { title: "Volunteer assigned", detail: r.volunteer?.name ?? "Volunteer", time, icon: IconUserCheck, iconBg: "bg-sky-100 text-sky-600" };
-    return { title: "New request received", detail: r.camp?.name ?? "Camp", time, icon: IconMapPin, iconBg: "bg-amber-100 text-amber-600" };
+    const fullDate = dateObj.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+
+    let title = "New request received";
+    let detail = r.location || `${r.district} District`;
+    let type: ActivityItem["type"] = "pending";
+
+    if (r.status === "resolved") {
+      title = "Request resolved";
+      detail = `Aid delivered to ${r.citizenName} (${r.peopleCount} people)`;
+      type = "resolved";
+    } else if (r.status === "in_transit") {
+      title = "Delivery in transit";
+      detail = `${r.volunteer?.name ?? "Volunteer"} en route to ${r.citizenName}`;
+      type = "in_transit";
+    } else if (r.status === "assigned") {
+      title = "Volunteer assigned";
+      detail = `${r.volunteer?.name ?? "Volunteer"} tasked for ${r.citizenName}`;
+      type = "assigned";
+    } else {
+      title = "New SOS request";
+      detail = `${r.citizenName} requested urgent relief for ${r.peopleCount} people`;
+      type = "pending";
+    }
+
+    return {
+      id: r.id,
+      title,
+      detail,
+      campName: r.camp?.name ?? "Central Relief Hub",
+      district: r.camp?.district ?? r.district,
+      time,
+      fullDate,
+      type,
+      status: r.status,
+    };
   });
 
   const alertCount = restockPending + unresolvedComplaints;
@@ -387,36 +422,7 @@ export default async function AdminDashboardPage() {
         </div>
       </section>
 
-      <section className="mt-5 px-5">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display text-[19px] font-bold tracking-tight text-ink">
-            Recent Activity
-          </h2>
-          <Link href="/admin/reports" className="text-[12px] font-bold text-sky-500">
-            View All
-          </Link>
-        </div>
-        <div className="mt-3 flex flex-col gap-3">
-          {activity.map(({ title, detail, time, icon: Icon, iconBg }) => (
-            <div key={title + detail + time} className="flex items-center gap-3">
-              <span
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${iconBg}`}
-              >
-                <Icon className="h-[18px] w-[18px]" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-bold text-ink">
-                  {title}
-                  <span className="font-medium text-slate-500"> — {detail}</span>
-                </p>
-              </div>
-              <span className="shrink-0 text-[10.5px] font-semibold tabular-nums text-slate-400">
-                {time}
-              </span>
-            </div>
-          ))}
-        </div>
-      </section>
+      <RecentActivitySection initialActivities={activityItems} />
 
       <AdminNav />
     </div>
