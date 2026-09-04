@@ -7,6 +7,8 @@ import { CitizenHeader } from "../../components/citizen-header";
 import { CitizenNav } from "../../components/citizen-nav";
 import { Translated } from "../../components/citizen-translated";
 import { useCitizenLocation } from "../../components/use-citizen-location";
+import { useLanguage } from "../../components/language-context";
+import { type LangCode } from "../../../lib/citizen-translations";
 import {
   IconMic,
   IconPlayFilled,
@@ -125,8 +127,17 @@ const EMERGENCY_KEYWORDS = [
 export function AudioSosForm() {
   const router = useRouter();
   const { coords, districtName } = useCitizenLocation();
+  const { lang, setLang, t } = useLanguage();
 
-  const [selectedLang, setSelectedLang] = useState<string>("ur");
+  const [selectedLang, setSelectedLang] = useState<string>(lang || "ur");
+
+  // Keep selectedLang and language context in sync
+  useEffect(() => {
+    if (lang && lang !== selectedLang) {
+      setSelectedLang(lang);
+    }
+  }, [lang]);
+
   const currentPreset = VOICE_PRESETS[selectedLang] || VOICE_PRESETS.ur;
 
   // Real-Time Transcription State
@@ -429,7 +440,7 @@ export function AudioSosForm() {
   // Submit Voice Note SOS to Backend
   async function handleSubmitSos() {
     if (!name.trim() || !phone.trim()) {
-      setFormError("Please enter your name and contact phone number");
+      setFormError(t("voiceFormError"));
       return;
     }
 
@@ -493,22 +504,22 @@ export function AudioSosForm() {
                 <IconMic className="h-4 w-4" />
               </span>
               <h1 className="font-display text-[20px] font-extrabold tracking-tight text-ink">
-                Voice Note SOS
+                {t("voiceSosTitle")}
               </h1>
             </div>
             <p className="mt-1 text-[12px] font-medium text-slate-500">
-              Live real-time speech transcription &amp; multi-lingual emergency keyword analysis.
+              {t("voiceSosSubtitle")}
             </p>
           </div>
           <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700 border border-emerald-200 shrink-0">
-            Real-Time AI
+            {t("realTimeAi")}
           </span>
         </div>
 
         {/* 7 Regional Language Selector */}
         <div className="mt-4">
           <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Select Language (7 Languages Supported)
+            {t("selectLanguageTitle")}
           </label>
           <div className="mt-2 grid grid-cols-4 gap-1.5 sm:grid-cols-7">
             {Object.values(VOICE_PRESETS).map((preset) => {
@@ -519,6 +530,7 @@ export function AudioSosForm() {
                   type="button"
                   onClick={() => {
                     setSelectedLang(preset.code);
+                    setLang(preset.code as LangCode);
                     if (isPlayingAudio) {
                       togglePlayAudio();
                     }
@@ -547,12 +559,12 @@ export function AudioSosForm() {
                 }`}
               />
               {isRecording
-                ? "🎙️ Recording Live Voice..."
+                ? t("recordingLive")
                 : isTranscribing
-                ? "⚡ Transcribing in Real-Time..."
+                ? t("transcribingLive")
                 : hasRecordedAudio
-                ? "✓ Audio Captured & Ready"
-                : "Ready to Record"}
+                ? t("audioCapturedReady")
+                : t("readyToRecord")}
             </span>
             <span className="font-mono text-[12px] font-bold text-slate-500 tabular-nums">
               00:{String(recordElapsed).padStart(2, "0")} / 01:00
@@ -640,8 +652,8 @@ export function AudioSosForm() {
 
           <p className="mt-3 text-center text-[11.5px] font-medium text-slate-500">
             {isRecording
-              ? "Speaking... voice is being transcribed in real-time below ↓"
-              : "Tap the mic to record your voice or tap the speaker to play and transcribe."}
+              ? t("speakingInstruction")
+              : t("recordingInstruction")}
           </p>
         </div>
 
@@ -651,14 +663,14 @@ export function AudioSosForm() {
             <div className="flex items-center gap-1.5">
               <IconSparkles className="h-4 w-4 text-purple-600" />
               <span className="font-display text-[13px] font-bold text-ink">
-                Real-Time AI Speech Transcription ({currentPreset.name})
+                {t("realTimeAiTranscription")} ({currentPreset.name})
               </span>
             </div>
             <div className="flex items-center gap-1">
               {isTranscribing && (
                 <span className="flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-[9.5px] font-bold text-purple-800 animate-pulse">
                   <span className="h-1.5 w-1.5 rounded-full bg-purple-600 animate-ping" />
-                  Streaming Live
+                  {t("streamingLive")}
                 </span>
               )}
               <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[9.5px] font-bold text-slate-600">
@@ -682,14 +694,14 @@ export function AudioSosForm() {
                 </>
               ) : (
                 <span className="text-slate-400 italic font-normal">
-                  Transcribing speech in real-time... Speak into your microphone.
+                  {t("transcribingPlaceholder")}
                 </span>
               )}
             </p>
 
             {/* Phonetic Pronunciation Translation */}
             <p className="mt-2 text-[11px] font-medium italic text-slate-500">
-              Phonetic: &ldquo;{currentPreset.phonetic}&rdquo;
+              {t("phoneticLabel")} &ldquo;{currentPreset.phonetic}&rdquo;
             </p>
           </div>
 
@@ -697,10 +709,10 @@ export function AudioSosForm() {
           <div className="mt-4 border-t border-slate-100 pt-3">
             <div className="flex items-center justify-between">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Live Detected Keywords ({detectedDestruction.length + detectedAnxiety.length} Active)
+                {t("liveDetectedKeywords")} ({detectedDestruction.length + detectedAnxiety.length} {t("activeLabel")})
               </p>
               <span className="text-[10px] font-semibold text-emerald-700">
-                Real-Time NLP Extractor
+                {t("realTimeNlpExtractor")}
               </span>
             </div>
 
@@ -727,7 +739,7 @@ export function AudioSosForm() {
 
               {detectedDestruction.length === 0 && detectedAnxiety.length === 0 && (
                 <span className="text-[11px] text-slate-400 italic">
-                  Listening for disaster keywords (paani, doob, kashti, barbaadi)...
+                  {t("listeningDisasterKeywords")}
                 </span>
               )}
             </div>
@@ -739,21 +751,21 @@ export function AudioSosForm() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-rose-600">
-                Real-Time Risk &amp; Severity Assessment
+                {t("realTimeRiskAssessment")}
               </p>
               <p className="mt-0.5 font-display text-[17px] font-extrabold text-rose-950">
-                {dynamicRiskScore}% Critical Urgency
+                {dynamicRiskScore}% {t("criticalUrgency")}
               </p>
             </div>
             <span className="flex items-center gap-1 rounded-full bg-red-600 px-3 py-1 text-[11px] font-extrabold text-white shadow-xs animate-pulse">
               <IconAlertTriangle className="h-3.5 w-3.5" />
-              Extreme Danger
+              {t("extremeDanger")}
             </span>
           </div>
 
           <div className="mt-3 border-t border-rose-200/60 pt-2.5">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              Auto-Inferred Relief Needs from Live Audio
+              {t("autoInferredNeeds")}
             </p>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {inferredNeeds.map((need, idx) => (
@@ -771,7 +783,7 @@ export function AudioSosForm() {
         {/* Citizen Contact & Location Form */}
         <div className="mt-5 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
           <h3 className="font-display text-[15px] font-bold text-ink">
-            Citizen Contact &amp; GPS Dispatch
+            {t("citizenContactGpsDispatch")}
           </h3>
 
           {formError && (
@@ -783,33 +795,33 @@ export function AudioSosForm() {
           <div className="mt-3 flex flex-col gap-3">
             <div>
               <label className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400">
-                Your Full Name
+                {t("yourFullName")}
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Fatima Bibi / Tariq Shah"
+                placeholder={t("namePlaceholderAudio")}
                 className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-[13px] font-medium text-ink outline-none focus:border-channel focus:bg-white"
               />
             </div>
 
             <div>
               <label className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400">
-                Contact Phone Number
+                {t("contactPhoneNumber")}
               </label>
               <input
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="0300 1234567"
+                placeholder={t("phonePlaceholderAudio")}
                 className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-[13px] font-medium text-ink outline-none focus:border-channel focus:bg-white"
               />
             </div>
 
             <div>
               <label className="text-[10.5px] font-bold uppercase tracking-wider text-slate-400">
-                Number of Stranded People
+                {t("strandedPeopleCount")}
               </label>
               <div className="mt-1 flex items-center gap-3">
                 <button
@@ -820,7 +832,7 @@ export function AudioSosForm() {
                   −
                 </button>
                 <span className="min-w-[70px] text-center font-display text-[15px] font-bold tabular-nums text-ink">
-                  {people} People
+                  {people} {t("peopleUnit")}
                 </span>
                 <button
                   type="button"
@@ -836,9 +848,9 @@ export function AudioSosForm() {
             <div className="mt-2 flex items-center gap-2 rounded-xl bg-sky-50/70 p-3 text-[11.5px] text-slate-700">
               <IconShieldPin className="h-4 w-4 text-channel shrink-0" />
               <span>
-                Dispatch Location:{" "}
+                {t("dispatchLocationLabel")}{" "}
                 <strong className="text-ink">
-                  {districtName ? districtName.split(",")[0] : "Rawalpindi Relief Sector"}
+                  {districtName ? districtName.split(",")[0] : t("defaultReliefSector")}
                 </strong>{" "}
                 (Lat: {coords?.lat?.toFixed(3) ?? "33.597"}, Lng: {coords?.lng?.toFixed(3) ?? "73.065"})
               </span>
@@ -853,11 +865,11 @@ export function AudioSosForm() {
             className="mt-5 flex h-[52px] w-full items-center justify-center gap-2 rounded-full bg-emerald-600 font-display text-[14px] font-bold text-white shadow-lg shadow-emerald-600/30 transition hover:bg-emerald-700 active:scale-98 disabled:opacity-50"
           >
             {submitting ? (
-              "Transcribing & Dispatching SOS…"
+              t("transcribingDispatching")
             ) : (
               <>
                 <IconSend className="h-4 w-4" />
-                Dispatch Emergency Voice SOS
+                {t("dispatchVoiceSosBtn")}
               </>
             )}
           </button>
@@ -871,21 +883,21 @@ export function AudioSosForm() {
                 <IconCheck className="h-8 w-8" strokeWidth={3} />
               </div>
               <h3 className="mt-3 font-display text-[19px] font-extrabold text-ink">
-                Voice Note SOS Dispatched!
+                {t("voiceSosSuccessTitle")}
               </h3>
               <p className="mt-1 text-[12px] text-slate-500">
-                Your live voice note and keyword analysis were routed to field dispatch.
+                {t("voiceSosSuccessDesc")}
               </p>
 
               <div className="my-4 rounded-2xl bg-slate-50 border border-slate-100 p-3.5">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  SOS Tracking Code
+                  {t("sosTrackingCode")}
                 </p>
                 <p className="mt-1 font-mono text-[18px] font-extrabold tracking-wider text-channel">
                   {result.code}
                 </p>
                 <p className="mt-1 text-[11px] text-slate-600">
-                  Assigned Camp: <strong>{result.camp}</strong>
+                  {t("assignedCamp")} <strong>{result.camp}</strong>
                 </p>
               </div>
 
@@ -894,14 +906,14 @@ export function AudioSosForm() {
                   href={`/status?code=${encodeURIComponent(result.code)}&district=${encodeURIComponent(result.district || "Rawalpindi")}&lat=${result.lat ?? 33.5651}&lng=${result.lng ?? 73.0169}`}
                   className="flex h-11 w-full items-center justify-center rounded-xl bg-channel font-display text-[13px] font-bold text-white shadow-md shadow-channel/20 transition active:scale-98"
                 >
-                  Track My Rescue Request →
+                  {t("trackMyRescueRequest")}
                 </Link>
                 <button
                   type="button"
                   onClick={() => setResult(null)}
                   className="text-[12px] font-bold text-slate-400 hover:text-slate-600 py-1"
                 >
-                  Send Another SOS
+                  {t("sendAnotherSos")}
                 </button>
               </div>
             </div>
