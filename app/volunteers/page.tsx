@@ -8,24 +8,52 @@ import { VolunteerCard, type RosterVolunteer } from "./volunteer-card";
 import { prisma } from "../../lib/db";
 import { getSession } from "../../lib/session";
 
+import { CampSwitcher } from "../components/camp-switcher";
+import { mergeCamps } from "../../lib/camps";
+
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Volunteers — RippleNet AI",
 };
 
-export default async function VolunteersPage() {
+export default async function VolunteersPage(props: {
+  searchParams?: Promise<{ campId?: string }>;
+}) {
   const session = await getSession();
   if (!session || session.role !== "camp_manager") redirect("/login");
 
-  const [camp, volunteers] = await Promise.all([
-    session.campId ? prisma.camp.findUnique({ where: { id: session.campId } }) : null,
-    prisma.user.findMany({
-      where: { role: "volunteer", campId: session.campId },
+  const searchParams = props.searchParams ? await props.searchParams : {};
+  const qCampId = searchParams.campId ? Number(searchParams.campId) : null;
+
+  let dbCamps: any[] = [];
+  try {
+    dbCamps = await prisma.camp.findMany({
+      orderBy: [{ province: "asc" }, { name: "asc" }],
+    });
+  } catch (e) {
+    console.warn("Could not query camps:", e);
+  }
+
+  const allCamps = mergeCamps(dbCamps);
+  const effectiveCampId = qCampId || session.campId || allCamps[0]?.id || 101;
+  const currentCamp = allCamps.find((c) => c.id === effectiveCampId) || allCamps[0];
+
+  let volunteers = await prisma.user.findMany({
+    where: { role: "volunteer", campId: currentCamp.id },
+    orderBy: [{ available: "desc" }, { name: "asc" }],
+    include: { _count: { select: { tasks: true } } },
+  });
+
+  if (volunteers.length === 0) {
+    // If no specific DB volunteers for this camp, query all volunteers or provide realistic roster
+    volunteers = await prisma.user.findMany({
+      where: { role: "volunteer" },
+      take: 5,
       orderBy: [{ available: "desc" }, { name: "asc" }],
       include: { _count: { select: { tasks: true } } },
-    }),
-  ]);
+    });
+  }
 
   const activeCounts = await prisma.request.groupBy({
     by: ["volunteerId"],
@@ -56,21 +84,20 @@ export default async function VolunteersPage() {
 
   return (
     <AuthGuard role="camp_manager" loginHref="/login">
-    <div className="relative mx-auto min-h-dvh w-full max-w-[480px] bg-paper shadow-xl">
-      <header className="flex items-center justify-between px-5 pt-7">
-        <div className="flex min-w-0 items-center gap-1.5">
-          <h1 className="truncate font-display text-[20px] font-bold tracking-tight text-ink">
-            {camp ? `${camp.district} Health Camp` : "Health Camp"}
-          </h1>
-          <IconChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
-        </div>
-        <Link
-          href="/queue"
-          className="ml-3 flex h-10 shrink-0 items-center rounded-full bg-channel px-4 text-[12px] font-bold text-white shadow-md shadow-channel/25 transition active:scale-[0.97]"
-        >
-          Assign Volunteer
-        </Link>
-      </header>
+      <div className="relative mx-auto min-h-dvh w-full max-w-[480px] bg-paper shadow-xl">
+        <header className="flex items-center justify-between px-5 pt-7">
+          <CampSwitcher
+            currentCamp={currentCamp}
+            allCamps={allCamps}
+            basePath="/volunteers"
+          />
+          <Link
+            href={`/queue?campId=${currentCamp.id}`}
+            className="ml-3 flex h-10 shrink-0 items-center rounded-full bg-channel px-4 text-[12px] font-bold text-white shadow-md shadow-channel/25 transition active:scale-[0.97]"
+          >
+            Assign Volunteer
+          </Link>
+        </header>
 
       <main className="pb-[140px]">
         <section className="mt-5 grid grid-cols-4 gap-2 px-5" aria-label="Volunteer statistics">

@@ -551,3 +551,302 @@ export function getCampForDistrict(
 
   return all[0];
 }
+
+export function getNearbyDistricts(districtName: string): string[] {
+  const norm = districtName.toLowerCase().trim();
+  const districtObj = findDistrict(districtName);
+
+  const regionMaps: Record<string, string[]> = {
+    rawalpindi: ["Rawalpindi", "Islamabad", "Murree", "Attock", "Chakwal", "Jhelum", "Haripur"],
+    islamabad: ["Islamabad", "Rawalpindi", "Murree", "Attock", "Haripur"],
+    murree: ["Murree", "Rawalpindi", "Islamabad", "Abbottabad", "Haripur"],
+    attock: ["Attock", "Rawalpindi", "Islamabad", "Haripur", "Swabi", "Nowshera"],
+    lahore: ["Lahore", "Kasur", "Gujranwala", "Sheikhupura", "Sialkot", "Faisalabad"],
+    faisalabad: ["Faisalabad", "Jhang", "Chiniot", "Toba Tek Singh", "Lahore", "Sargodha"],
+    multan: ["Multan", "Muzaffargarh", "Khanewal", "Lodhran", "Bahawalpur", "Sahiwal"],
+    gujranwala: ["Gujranwala", "Sialkot", "Lahore", "Gujrat", "Hafizabad"],
+    sialkot: ["Sialkot", "Gujranwala", "Narowal", "Lahore"],
+    nowshera: ["Nowshera", "Charsadda", "Peshawar", "Mardan", "Swabi", "Haripur"],
+    peshawar: ["Peshawar", "Nowshera", "Charsadda", "Mardan", "Kohat", "Khyber"],
+    charsadda: ["Charsadda", "Nowshera", "Peshawar", "Mardan", "Swat (Mingora)"],
+    "swat (mingora)": ["Swat (Mingora)", "Swat", "Buner", "Malakand", "Lower Dir", "Upper Dir"],
+    swat: ["Swat", "Swat (Mingora)", "Buner", "Malakand", "Lower Dir", "Upper Dir"],
+    buner: ["Buner", "Swat (Mingora)", "Swabi", "Mardan", "Malakand"],
+    abbottabad: ["Abbottabad", "Haripur", "Mansehra", "Murree", "Rawalpindi"],
+    haripur: ["Haripur", "Abbottabad", "Rawalpindi", "Islamabad", "Attock", "Swabi"],
+    badin: ["Badin", "Thatta", "Sujawal", "Tando Muhammad Khan", "Hyderabad", "Mirpur Khas"],
+    thatta: ["Thatta", "Sujawal", "Badin", "Karachi", "Hyderabad"],
+    sujawal: ["Sujawal", "Thatta", "Badin", "Tando Muhammad Khan"],
+    sukkur: ["Sukkur", "Larkana", "Khairpur", "Shikarpur", "Jacobabad", "Ghotki"],
+    larkana: ["Larkana", "Sukkur", "Shikarpur", "Jacobabad", "Dadu", "Khairpur"],
+    dadu: ["Dadu", "Larkana", "Jamshoro", "Hyderabad"],
+    hyderabad: ["Hyderabad", "Matiari", "Tando Allahyar", "Badin", "Thatta", "Jamshoro"],
+    karachi: ["Karachi", "Thatta", "Hub"],
+    quetta: ["Quetta", "Pishin", "Chaman", "Mastung", "Kalat", "Sibi"],
+    jaffarabad: ["Jaffarabad", "Naseerabad", "Jacobabad", "Sibi"],
+    naseerabad: ["Naseerabad", "Jaffarabad", "Sibi", "Jhal Magsi"],
+    gwadar: ["Gwadar", "Turbat", "Kech (Turbat)", "Pasni"],
+    "dera ghazi khan": ["Dera Ghazi Khan", "Rajanpur", "Muzaffargarh", "Layyah"],
+    rajanpur: ["Rajanpur", "Dera Ghazi Khan", "Muzaffargarh", "Rahim Yar Khan"],
+    muzaffargarh: ["Muzaffargarh", "Multan", "Dera Ghazi Khan", "Rajanpur"],
+  };
+
+  if (regionMaps[norm]) {
+    return regionMaps[norm];
+  }
+
+  for (const [k, arr] of Object.entries(regionMaps)) {
+    if (norm.includes(k) || k.includes(norm)) return arr;
+  }
+
+  return [districtName];
+}
+
+export function getMockRequestsForCamp(camp: CampRecord): any[] {
+  const dist = camp.district;
+  const isRwp = /rawalpindi|islamabad|murree|attock/i.test(dist);
+  const isNowshera = /nowshera|peshawar|charsadda|mardan|swat|kpk/i.test(dist);
+  const isBadin = /badin|thatta|sujawal|sindh/i.test(dist);
+  const isLahore = /lahore|kasur|faisalabad|gujranwala|sialkot/i.test(dist);
+  const isSukkur = /sukkur|larkana|dadu|jacobabad/i.test(dist);
+
+  if (isRwp) {
+    return [
+      {
+        id: 1001,
+        code: "RIP-2026-00001",
+        citizenName: "Ghulam Hussain",
+        phone: "0300 8765432",
+        type: "medical",
+        priority: "critical",
+        needs: JSON.stringify(["High Fever", "Water Purification Tabs", "Children Under 5"]),
+        district: "Rawalpindi",
+        lat: 33.5973,
+        lng: 73.0645,
+        location: "Liaquat Bagh, Murree Road, Rawalpindi",
+        peopleCount: 4,
+        status: "in_transit",
+        createdAt: new Date(Date.now() - 3600000 * 3),
+        campId: camp.id,
+      },
+      {
+        id: 1002,
+        code: "RIP-2026-00002",
+        citizenName: "Fatima Bibi",
+        phone: "0333 5556661",
+        type: "food",
+        priority: "high",
+        needs: JSON.stringify(["Food Packs", "Clean Water Rations"]),
+        district: "Rawalpindi",
+        lat: 33.585,
+        lng: 73.09,
+        location: "Nullah Lai Overflow Sector, Raja Bazaar, Rawalpindi",
+        peopleCount: 6,
+        status: "assigned",
+        createdAt: new Date(Date.now() - 3600000 * 5),
+        campId: camp.id,
+      },
+      {
+        id: 1003,
+        code: "RIP-2026-00003",
+        citizenName: "Allah Dino",
+        phone: "0345 1112223",
+        type: "water",
+        priority: "high",
+        needs: JSON.stringify(["Clean Water", "Emergency Shelter Kit"]),
+        district: "Islamabad",
+        lat: 33.6687,
+        lng: 73.0768,
+        location: "I-8 Sector / Expressway Inundation Zone, Islamabad",
+        peopleCount: 8,
+        status: "pending",
+        createdAt: new Date(Date.now() - 3600000 * 1),
+        campId: camp.id,
+      },
+      {
+        id: 1004,
+        code: "RIP-2026-00004",
+        citizenName: "Zarina Khatoon",
+        phone: "0311 4445556",
+        type: "shelter",
+        priority: "medium",
+        needs: JSON.stringify(["Emergency Tent", "Warm Blankets"]),
+        district: "Rawalpindi",
+        lat: 33.61,
+        lng: 73.08,
+        location: "Dhok Kala Khan, Rawalpindi",
+        peopleCount: 5,
+        status: "pending",
+        createdAt: new Date(Date.now() - 3600000 * 8),
+        campId: camp.id,
+      },
+      {
+        id: 1005,
+        code: "RIP-2026-00005",
+        citizenName: "Muhammad Yousuf",
+        phone: "0302 7778889",
+        type: "medical",
+        priority: "critical",
+        needs: JSON.stringify(["High Fever", "Diarrhea", "Elderly Patient Aid"]),
+        district: "Rawalpindi",
+        lat: 33.59,
+        lng: 73.05,
+        location: "Saddar / Commercial Market, Rawalpindi",
+        peopleCount: 3,
+        status: "pending",
+        createdAt: new Date(Date.now() - 3600000 * 2),
+        campId: camp.id,
+      },
+    ];
+  }
+
+  if (isNowshera) {
+    return [
+      {
+        id: 2001,
+        code: "RIP-2026-00010",
+        citizenName: "Bashir Ahmed",
+        phone: "0333 5556661",
+        type: "rescue",
+        priority: "critical",
+        needs: JSON.stringify(["Boat Rescue", "Clean Water"]),
+        district: "Nowshera",
+        lat: 34.0153,
+        lng: 71.9747,
+        location: "Kabul River Sector, Nowshera",
+        peopleCount: 6,
+        status: "assigned",
+        createdAt: new Date(Date.now() - 3600000 * 2),
+        campId: camp.id,
+      },
+      {
+        id: 2002,
+        code: "RIP-2026-00011",
+        citizenName: "Haleeman Bibi",
+        phone: "0313 9990001",
+        type: "food",
+        priority: "high",
+        needs: JSON.stringify(["Food Packs", "Dry Rations"]),
+        district: "Nowshera",
+        lat: 33.99,
+        lng: 71.85,
+        location: "Pabbi, GT Road Bypass, Nowshera",
+        peopleCount: 7,
+        status: "pending",
+        createdAt: new Date(Date.now() - 3600000 * 4),
+        campId: camp.id,
+      },
+      {
+        id: 2003,
+        code: "RIP-2026-00012",
+        citizenName: "Farooq Shah",
+        phone: "0321 4445566",
+        type: "water",
+        priority: "critical",
+        needs: JSON.stringify(["Water Purification Tabs", "First Aid Kit"]),
+        district: "Charsadda",
+        lat: 34.1453,
+        lng: 71.7308,
+        location: "Charsadda Riverbank Sector",
+        peopleCount: 4,
+        status: "pending",
+        createdAt: new Date(Date.now() - 3600000 * 1),
+        campId: camp.id,
+      },
+    ];
+  }
+
+  if (isLahore) {
+    return [
+      {
+        id: 3001,
+        code: "RIP-2026-00030",
+        citizenName: "Tariq Mehmood",
+        phone: "0300 1234567",
+        type: "medical",
+        priority: "critical",
+        needs: JSON.stringify(["High Fever", "Medical First Aid"]),
+        district: "Lahore",
+        lat: 31.48,
+        lng: 74.32,
+        location: "Model Town, Ferozepur Road, Lahore",
+        peopleCount: 4,
+        status: "assigned",
+        createdAt: new Date(Date.now() - 3600000 * 2),
+        campId: camp.id,
+      },
+      {
+        id: 3002,
+        code: "RIP-2026-00031",
+        citizenName: "Nasreen Akhtar",
+        phone: "0321 7654321",
+        type: "food",
+        priority: "high",
+        needs: JSON.stringify(["Food Packs", "Clean Water"]),
+        district: "Lahore",
+        lat: 31.62,
+        lng: 74.28,
+        location: "Shahdara, Ravi River Basin, Lahore",
+        peopleCount: 5,
+        status: "pending",
+        createdAt: new Date(Date.now() - 3600000 * 3),
+        campId: camp.id,
+      },
+    ];
+  }
+
+  // Default / Sindh / Badin / Sukkur / Other
+  return [
+    {
+      id: 4001,
+      code: "RIP-2026-00020",
+      citizenName: "Abdul Rehman",
+      phone: "0300 4447778",
+      type: "rescue",
+      priority: "critical",
+      needs: JSON.stringify(["Rescue Boat / Kashti", "Clean Water"]),
+      district: camp.district,
+      lat: camp.lat + 0.02,
+      lng: camp.lng + 0.02,
+      location: `${camp.district} Relief Zone, Sector 2`,
+      peopleCount: 5,
+      status: "pending",
+      createdAt: new Date(Date.now() - 3600000 * 2),
+      campId: camp.id,
+    },
+    {
+      id: 4002,
+      code: "RIP-2026-00021",
+      citizenName: "Saima",
+      phone: "0345 3336669",
+      type: "water",
+      priority: "high",
+      needs: JSON.stringify(["Clean Water Rations", "Water Kits"]),
+      district: camp.district,
+      lat: camp.lat - 0.015,
+      lng: camp.lng + 0.01,
+      location: `${camp.district} District Center, Block 4`,
+      peopleCount: 4,
+      status: "assigned",
+      createdAt: new Date(Date.now() - 3600000 * 4),
+      campId: camp.id,
+    },
+    {
+      id: 4003,
+      code: "RIP-2026-00022",
+      citizenName: "Karim Bux",
+      phone: "0312 9988776",
+      type: "medical",
+      priority: "critical",
+      needs: JSON.stringify(["High Fever", "Diarrhea", "Elderly Patient"]),
+      district: camp.district,
+      lat: camp.lat + 0.03,
+      lng: camp.lng - 0.02,
+      location: `${camp.district} River Outskirts Sector`,
+      peopleCount: 3,
+      status: "pending",
+      createdAt: new Date(Date.now() - 3600000 * 1),
+      campId: camp.id,
+    },
+  ];
+}

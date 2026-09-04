@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import {
+  IconChevronLeft,
   IconClipboardCheck,
   IconDownload,
   IconHeart,
@@ -52,18 +54,28 @@ export default function AdminLoginPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-white/45 to-white/80" />
       </div>
 
-      <div className="relative flex min-h-dvh flex-col px-5 pb-8 pt-10">
-        <header className="flex flex-col items-center">
-          <Logo className="h-16 w-16" />
+      <div className="relative flex min-h-dvh flex-col px-5 pb-8 pt-6">
+        <div className="flex items-center justify-between">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-[11px] font-bold text-ink shadow-xs backdrop-blur-sm transition hover:bg-white active:scale-95"
+          >
+            <IconChevronLeft className="h-3.5 w-3.5" />
+            Citizen Home
+          </Link>
+          <span className="rounded-full bg-white/80 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-ink shadow-xs backdrop-blur-sm">
+            Admin Portal
+          </span>
+        </div>
+
+        <header className="mt-3 flex flex-col items-center">
+          <Logo className="h-16 w-16 shadow-md" />
           <p className="mt-3 font-display text-[22px] font-bold tracking-tight text-ink">
             RippleNet AI
           </p>
           <p className="mt-0.5 text-[12px] font-semibold text-slate-500">
             Alkhidmat Flood Relief
           </p>
-          <span className="mt-2 rounded-full bg-white/80 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-ink shadow-sm backdrop-blur-sm">
-            Admin Portal
-          </span>
         </header>
 
         <main className="mt-6 w-full rounded-[28px] bg-white px-5 pb-6 pt-6 shadow-2xl shadow-black/15">
@@ -75,6 +87,13 @@ export default function AdminLoginPage() {
           </p>
 
           <AdminLoginForm />
+
+          <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-[11.5px]">
+            <Link href="/" className="font-bold text-sky-600 hover:underline">
+              ← Return to Citizen Home
+            </Link>
+            <span className="text-slate-400">Headquarters</span>
+          </div>
         </main>
 
         <section
