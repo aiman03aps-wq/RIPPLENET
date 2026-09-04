@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { haversineKm } from "@/lib/geo";
 import { findDistrict } from "@/lib/pakistan-districts";
+import { mergeCamps } from "@/lib/camps";
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
@@ -10,12 +11,19 @@ export async function GET(req: NextRequest) {
   const lng = Number(url.searchParams.get("lng"));
   const hasPoint = Number.isFinite(lat) && Number.isFinite(lng);
 
-  const camps = await prisma.camp.findMany({
-    include: { _count: { select: { requests: true, restocks: true } } },
-    orderBy: [{ province: "asc" }, { name: "asc" }],
-  });
+  let dbCamps: any[] = [];
+  try {
+    dbCamps = await prisma.camp.findMany({
+      include: { _count: { select: { requests: true, restocks: true } } },
+      orderBy: [{ province: "asc" }, { name: "asc" }],
+    });
+  } catch (e) {
+    console.warn("Prisma camp query error:", e);
+  }
 
-  let result = camps.map((c) => ({
+  const allCamps = mergeCamps(dbCamps);
+
+  let result = allCamps.map((c) => ({
     id: c.id,
     name: c.name,
     district: c.district,
@@ -26,7 +34,7 @@ export async function GET(req: NextRequest) {
     capacity: c.capacity,
     occupancy: c.occupancy,
     status: c.status,
-    requestCount: c._count.requests,
+    requestCount: c.requestCount ?? 0,
     distanceKm: hasPoint
       ? Math.round(haversineKm({ lat, lng }, { lat: c.lat, lng: c.lng }) * 10) / 10
       : null,

@@ -328,7 +328,19 @@ export function runMultiAgentPipeline(params: {
   // 4. 🗺️ Route Agent
   const distKm = params.routeDistanceKm ?? 8.4;
   const durMin = params.routeDurationMin ?? 22;
-  const viaName = params.routeVia ?? "Talhar - Badin Link Road";
+  const viaName =
+    params.routeVia ??
+    (params.district.toLowerCase() === "rawalpindi"
+      ? "Murree Road / GT Relief Bypass"
+      : params.district.toLowerCase() === "islamabad"
+      ? "Expressway - I-8 Relief Corridor"
+      : params.district.toLowerCase() === "lahore"
+      ? "Ferozepur Road Relief Corridor"
+      : params.district.toLowerCase() === "nowshera"
+      ? "GT Road - Kabul River Bypass"
+      : params.district.toLowerCase() === "badin"
+      ? "Talhar - Badin Link Road"
+      : `${params.district} Relief Highway Bypass`);
   const vehicle = isRescue ? "Motorboat / Dinghy" : distKm > 15 ? "4x4 Relief Truck" : "All-Terrain Motorbike";
 
   const routeThoughts: AgentThought[] = [

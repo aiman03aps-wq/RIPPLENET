@@ -26,7 +26,7 @@ const SAMPLE_REQUESTS: SampleRequest[] = [
   {
     code: "RIP-2026-00001",
     name: "Fatima Bibi",
-    district: "Badin",
+    district: "Rawalpindi",
     status: "In Transit",
     tone: "bg-violet-50 text-violet-700 ring-violet-200",
     tag: "Medical & Clean Water Dispatched",
@@ -50,7 +50,7 @@ const SAMPLE_REQUESTS: SampleRequest[] = [
   {
     code: "RIP-2026-00008",
     name: "Saima",
-    district: "Badin",
+    district: "Lahore",
     status: "Resolved",
     tone: "bg-emerald-50 text-emerald-700 ring-emerald-200",
     tag: "Relief Delivered",

@@ -36,9 +36,9 @@ export function SosChannelsClient() {
         body: JSON.stringify({
           citizenName: "USSD Citizen (Keypad *313#)",
           phone: "0300 0003130",
-          lat: coords?.lat ?? 24.6561,
-          lng: coords?.lng ?? 68.8368,
-          district: districtName?.split(",")[0] ?? "Badin",
+          lat: coords?.lat ?? 33.5651,
+          lng: coords?.lng ?? 73.0169,
+          district: districtName?.split(",")[0]?.trim() || "Rawalpindi",
           needs: [ussdSelectedNeed, "No Clean Water"],
           peopleCount: ussdPeople,
           type: "water",
@@ -47,6 +47,7 @@ export function SosChannelsClient() {
       });
       const data = await res.json();
       if (data.request?.code) {
+        localStorage.setItem("citizen_last_request", data.request.code);
         setUssdResultCode(data.request.code);
         setUssdStep("done");
       } else {
@@ -247,7 +248,10 @@ export function SosChannelsClient() {
                     type="button"
                     onClick={() => {
                       setUssdOpen(false);
-                      router.push(`/status?code=${encodeURIComponent(ussdResultCode)}`);
+                      const dist = districtName?.split(",")[0]?.trim() || "Rawalpindi";
+                      const la = coords?.lat ?? 33.5651;
+                      const ln = coords?.lng ?? 73.0169;
+                      router.push(`/status?code=${encodeURIComponent(ussdResultCode)}&district=${encodeURIComponent(dist)}&lat=${la}&lng=${ln}`);
                     }}
                     className="flex-1 rounded-xl bg-cyan-500 py-2.5 text-[12px] font-bold text-slate-950"
                   >

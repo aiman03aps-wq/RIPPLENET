@@ -147,7 +147,13 @@ export function AudioSosForm() {
   const [people, setPeople] = useState<number>(4);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [formError, setFormError] = useState<string>("");
-  const [result, setResult] = useState<{ code: string; camp: string | null } | null>(null);
+  const [result, setResult] = useState<{
+    code: string;
+    camp: string | null;
+    district?: string;
+    lat?: number;
+    lng?: number;
+  } | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -437,9 +443,9 @@ export function AudioSosForm() {
         body: JSON.stringify({
           citizenName: name.trim(),
           phone: phone.trim(),
-          lat: coords?.lat ?? 24.6561,
-          lng: coords?.lng ?? 68.8368,
-          district: districtName?.split(",")[0] ?? "Badin",
+          lat: coords?.lat ?? 33.5651,
+          lng: coords?.lng ?? 73.0169,
+          district: districtName?.split(",")[0]?.trim() || "Rawalpindi",
           needs: inferredNeeds,
           peopleCount: people,
           type: "water",
@@ -453,10 +459,19 @@ export function AudioSosForm() {
         throw new Error(data.error ?? "Failed to dispatch voice note SOS");
       }
 
+      const assignedCamp = data.routedToCamp || data.request.camp?.name || "Nearest Relief Camp";
+      const assignedDistrict = data.request.district || districtName?.split(",")[0]?.trim() || "Rawalpindi";
+      const assignedLat = coords?.lat ?? 33.5651;
+      const assignedLng = coords?.lng ?? 73.0169;
+
       setResult({
         code: data.request.code,
-        camp: data.request.camp?.name || "Nearest Base Camp",
+        camp: assignedCamp,
+        district: assignedDistrict,
+        lat: assignedLat,
+        lng: assignedLng,
       });
+      localStorage.setItem("citizen_last_request", data.request.code);
     } catch (err: unknown) {
       console.error(err);
       setFormError(err instanceof Error ? err.message : "Failed to dispatch SOS");
@@ -876,7 +891,7 @@ export function AudioSosForm() {
 
               <div className="flex flex-col gap-2">
                 <Link
-                  href={`/status?code=${result.code}`}
+                  href={`/status?code=${encodeURIComponent(result.code)}&district=${encodeURIComponent(result.district || "Rawalpindi")}&lat=${result.lat ?? 33.5651}&lng=${result.lng ?? 73.0169}`}
                   className="flex h-11 w-full items-center justify-center rounded-xl bg-channel font-display text-[13px] font-bold text-white shadow-md shadow-channel/20 transition active:scale-98"
                 >
                   Track My Rescue Request →

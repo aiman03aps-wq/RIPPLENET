@@ -7,6 +7,7 @@ import { ComplaintsList, type ComplaintView } from "./complaints-list";
 import { CitizenComplaintClient } from "./citizen-complaint-client";
 import { prisma } from "../../lib/db";
 import { getSession } from "../../lib/session";
+import { mergeCamps } from "@/lib/camps";
 
 export const dynamic = "force-dynamic";
 
@@ -70,9 +71,9 @@ export default async function ComplaintsPage() {
   }
 
   // Otherwise, render Citizen Lodge Complaint Portal
-  let camps: { id: number; name: string; district: string }[] = [];
+  let dbCamps: any[] = [];
   try {
-    camps = await prisma.camp.findMany({
+    dbCamps = await prisma.camp.findMany({
       select: { id: true, name: true, district: true },
       orderBy: { name: "asc" },
     });
@@ -80,18 +81,8 @@ export default async function ComplaintsPage() {
     console.warn("Could not query camps for /complaints:", e);
   }
 
-  if (!camps.length) {
-    camps = [
-      { id: 1, name: "Badin Relief Camp", district: "Badin" },
-      { id: 2, name: "Dadu Relief Camp", district: "Dadu" },
-      { id: 3, name: "Sukkur Relief Camp", district: "Sukkur" },
-      { id: 4, name: "Thatta Relief Camp", district: "Thatta" },
-      { id: 5, name: "Nowshera Relief Camp", district: "Nowshera" },
-      { id: 6, name: "Swat Relief Camp", district: "Swat" },
-      { id: 7, name: "Jaffarabad Relief Camp", district: "Jaffarabad" },
-      { id: 8, name: "Rajanpur Relief Camp", district: "Rajanpur" },
-    ];
-  }
+  const allCamps = mergeCamps(dbCamps);
+  const camps = allCamps.map((c) => ({ id: c.id, name: c.name, district: c.district }));
 
   return <CitizenComplaintClient camps={camps} />;
 }

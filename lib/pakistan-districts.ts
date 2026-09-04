@@ -9,11 +9,16 @@ export interface District {
 }
 
 export const pakistanDistricts: District[] = [
-  // Punjab
+  // Punjab & Federal Capital
+  { name: "Islamabad", province: "Punjab", lat: 33.6844, lng: 73.0479, floodWeight: 0.2 },
+  { name: "Rawalpindi", province: "Punjab", lat: 33.5651, lng: 73.0169, floodWeight: 0.3 },
+  { name: "Murree", province: "Punjab", lat: 33.907, lng: 73.3943, floodWeight: 0.4 },
+  { name: "Attock", province: "Punjab", lat: 33.7667, lng: 72.3667, floodWeight: 0.3 },
+  { name: "Chakwal", province: "Punjab", lat: 32.9328, lng: 72.855, floodWeight: 0.3 },
+  { name: "Jhelum", province: "Punjab", lat: 32.9405, lng: 73.7276, floodWeight: 0.4 },
   { name: "Lahore", province: "Punjab", lat: 31.5497, lng: 74.3436, floodWeight: 0.2 },
   { name: "Faisalabad", province: "Punjab", lat: 31.4187, lng: 73.0791, floodWeight: 0.2 },
   { name: "Multan", province: "Punjab", lat: 30.1575, lng: 71.5249, floodWeight: 0.4 },
-  { name: "Rawalpindi", province: "Punjab", lat: 33.5651, lng: 73.0169, floodWeight: 0.3 },
   { name: "Gujranwala", province: "Punjab", lat: 32.1877, lng: 74.1945, floodWeight: 0.2 },
   { name: "Sargodha", province: "Punjab", lat: 32.0836, lng: 72.6711, floodWeight: 0.3 },
   { name: "Sialkot", province: "Punjab", lat: 32.4945, lng: 74.5229, floodWeight: 0.3 },

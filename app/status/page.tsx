@@ -20,6 +20,8 @@ import { haversineKm } from "../../lib/geo";
 import { formatFullDate, parseNeeds } from "../../lib/needs";
 import { runMultiAgentPipeline } from "../../lib/agents";
 import { fetchRainfall } from "../../lib/weather";
+import { findDistrict, nearestDistrict } from "../../lib/pakistan-districts";
+import { findNearestCamp, getCampForDistrict } from "../../lib/camps";
 import { CopyRequestId } from "./copy-request-id";
 import { TrackSearch } from "./track-search";
 import { StatusRefresher } from "./status-refresher";
@@ -90,6 +92,12 @@ export default async function StatusPage(props: {
   const searchParams = await props.searchParams;
   const rawCode = searchParams.code;
   const code = (Array.isArray(rawCode) ? rawCode[0] : rawCode)?.trim().toUpperCase() ?? "";
+  const rawDistrict = searchParams.district;
+  const qDistrict = (Array.isArray(rawDistrict) ? rawDistrict[0] : rawDistrict)?.trim() ?? "";
+  const rawLat = searchParams.lat;
+  const qLat = (Array.isArray(rawLat) ? rawLat[0] : rawLat)?.trim() ?? "";
+  const rawLng = searchParams.lng;
+  const qLng = (Array.isArray(rawLng) ? rawLng[0] : rawLng)?.trim() ?? "";
 
   const shell = (children: React.ReactNode) => (
     <LanguageProvider>
@@ -135,14 +143,14 @@ export default async function StatusPage(props: {
         type: "medical",
         priority: "critical",
         needs: JSON.stringify(["High Fever", "No Clean Water", "Children Under 5"]),
-        district: "Badin",
-        location: "Village Jam Goth, Talhar, Badin",
-        lat: 24.7487,
-        lng: 68.8651,
+        district: "Rawalpindi",
+        location: "Liaquat Bagh, Murree Road, Rawalpindi",
+        lat: 33.5973,
+        lng: 73.0645,
         peopleCount: 4,
         status: "in_transit",
         createdAt: new Date(),
-        camp: { id: 1, name: "Badin Relief Camp", district: "Badin", province: "Sindh", phone: "0297 123456", lat: 24.6561, lng: 68.8368 },
+        camp: { id: 101, name: "Alkhidmat Relief Camp - Rawalpindi (Liaquat Bagh)", district: "Rawalpindi", province: "Punjab", phone: "051 5551234", lat: 33.5973, lng: 73.0645 },
         volunteer: { id: 1, name: "Hamza Khan", phone: "0333 1112233" },
       },
       "RIP-2026-00002": {
@@ -154,13 +162,13 @@ export default async function StatusPage(props: {
         priority: "high",
         needs: JSON.stringify(["Food Packs", "Clean Water"]),
         district: "Nowshera",
-        location: "Tando Bago, Badin",
-        lat: 24.7394,
-        lng: 68.9697,
+        location: "Kabul River Sector, Nowshera",
+        lat: 34.0153,
+        lng: 71.9747,
         peopleCount: 6,
         status: "assigned",
         createdAt: new Date(),
-        camp: { id: 1, name: "Nowshera Relief Camp", district: "Nowshera", province: "KPK", phone: "0923 123456", lat: 34.0153, lng: 71.9747 },
+        camp: { id: 205, name: "Alkhidmat Relief Camp - Nowshera (Kabul River Sector)", district: "Nowshera", province: "Khyber Pakhtunkhwa", phone: "0923 611223", lat: 34.0153, lng: 71.9747 },
         volunteer: { id: 2, name: "Ayesha Malik", phone: "0321 4445566" },
       },
       "RIP-2026-00005": {
@@ -178,7 +186,7 @@ export default async function StatusPage(props: {
         peopleCount: 3,
         status: "pending",
         createdAt: new Date(),
-        camp: { id: 1, name: "Badin Relief Camp", district: "Badin", province: "Sindh", phone: "0297 123456", lat: 24.6561, lng: 68.8368 },
+        camp: { id: 403, name: "Alkhidmat Relief Camp - Badin (Talhar Road)", district: "Badin", province: "Sindh", phone: "0297 861234", lat: 24.6561, lng: 68.8368 },
         volunteer: null,
       },
       "RIP-2026-00008": {
@@ -189,14 +197,14 @@ export default async function StatusPage(props: {
         type: "water",
         priority: "medium",
         needs: JSON.stringify(["Clean Water"]),
-        district: "Badin",
-        location: "Badin City",
-        lat: 24.649,
-        lng: 68.8295,
+        district: "Lahore",
+        location: "Model Town, Ferozepur Road, Lahore",
+        lat: 31.48,
+        lng: 74.32,
         peopleCount: 4,
         status: "resolved",
         createdAt: new Date(),
-        camp: { id: 1, name: "Badin Relief Camp", district: "Badin", province: "Sindh", phone: "0297 123456", lat: 24.6561, lng: 68.8368 },
+        camp: { id: 301, name: "Alkhidmat Relief Camp - Lahore (Model Town / Ferozepur Rd)", district: "Lahore", province: "Punjab", phone: "042 35881234", lat: 31.48, lng: 74.32 },
         volunteer: { id: 1, name: "Hamza Khan", phone: "0333 1112233" },
       },
     };
@@ -209,24 +217,40 @@ export default async function StatusPage(props: {
       code.startsWith("SOS-") ||
       /^[A-Z0-9-]{6,}$/i.test(code)
     ) {
-      let fallbackCamp: any = null;
+      let reqDistrictName = qDistrict ? decodeURIComponent(qDistrict).trim() : "";
+      let reqLat = Number(qLat);
+      let reqLng = Number(qLng);
+
+      if (!Number.isFinite(reqLat) || !Number.isFinite(reqLng)) {
+        if (reqDistrictName) {
+          const d = findDistrict(reqDistrictName);
+          if (d) {
+            reqLat = d.lat;
+            reqLng = d.lng;
+          }
+        }
+      }
+
+      if (!Number.isFinite(reqLat) || !Number.isFinite(reqLng)) {
+        reqLat = 33.5651;
+        reqLng = 73.0169;
+        reqDistrictName = reqDistrictName || "Rawalpindi";
+      }
+
+      if (!reqDistrictName) {
+        const d = nearestDistrict(reqLat, reqLng);
+        reqDistrictName = d ? d.name : "Rawalpindi";
+      }
+
+      let dbCamps: any[] = [];
       try {
-        fallbackCamp = await prisma.camp.findFirst({
+        dbCamps = await prisma.camp.findMany({
           select: { id: true, name: true, district: true, province: true, phone: true, lat: true, lng: true },
         });
       } catch {}
 
-      if (!fallbackCamp) {
-        fallbackCamp = {
-          id: 1,
-          name: "Badin Relief Camp",
-          district: "Badin",
-          province: "Sindh",
-          phone: "0800 22677",
-          lat: 24.6561,
-          lng: 68.8368,
-        };
-      }
+      const nearest = findNearestCamp(reqLat, reqLng, dbCamps);
+      const fallbackCamp = nearest.camp;
 
       request = {
         id: Date.now(),
@@ -236,15 +260,15 @@ export default async function StatusPage(props: {
         type: "water",
         priority: "critical",
         needs: JSON.stringify(["Rescue Boat / Kashti", "Clean Drinking Water", "Emergency Food Ration", "Medical First Aid"]),
-        district: fallbackCamp.district || "Badin",
-        location: `${fallbackCamp.district} Relief Zone, Sector 4`,
-        lat: (fallbackCamp.lat || 24.6561) + 0.038,
-        lng: (fallbackCamp.lng || 68.8368) + 0.027,
+        district: reqDistrictName || fallbackCamp.district,
+        location: `${reqDistrictName || fallbackCamp.district} Relief Zone, Active Distress Sector`,
+        lat: reqLat,
+        lng: reqLng,
         peopleCount: 4,
         status: "assigned",
         createdAt: new Date(),
         camp: fallbackCamp,
-        volunteer: { id: 1, name: "Hamza Khan (Field Volunteer)", phone: "0333 1112233" },
+        volunteer: { id: 1, name: `Hamza Khan (Field Volunteer - ${reqDistrictName || fallbackCamp.district} Unit)`, phone: "0333 1112233" },
       };
     }
   }

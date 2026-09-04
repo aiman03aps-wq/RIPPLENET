@@ -48,6 +48,9 @@ export function SosForm() {
     code: string;
     camp: string | null;
     distanceKm: number | null;
+    district?: string;
+    lat?: number;
+    lng?: number;
   } | null>(null);
 
   // Real Camera Recording State
@@ -181,8 +184,11 @@ export function SosForm() {
       }
       setResult({
         code: data.request.code,
-        camp: data.routedToCamp,
+        camp: data.routedToCamp || data.request.camp?.name,
         distanceKm: data.distanceToCampKm,
+        district: data.request.district || districtName.split(",")[0]?.trim() || "Rawalpindi",
+        lat: coords.lat,
+        lng: coords.lng,
       });
     } catch {
       setSendError(true);
@@ -224,7 +230,7 @@ export function SosForm() {
           </div>
 
           <Link
-            href={`/status?code=${encodeURIComponent(result.code)}`}
+            href={`/status?code=${encodeURIComponent(result.code)}&district=${encodeURIComponent(result.district || "Rawalpindi")}&lat=${result.lat ?? 33.5651}&lng=${result.lng ?? 73.0169}`}
             className="mt-5 flex h-[54px] w-full items-center justify-center gap-2.5 rounded-full bg-ink text-[15px] font-bold text-white shadow-lg shadow-ink/25 transition active:scale-[0.98]"
           >
             <IconSend className="h-5 w-5" />
