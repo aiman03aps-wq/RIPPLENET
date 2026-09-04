@@ -17,6 +17,9 @@ interface SampleRequest {
   code: string;
   name: string;
   district: string;
+  location: string;
+  lat: number;
+  lng: number;
   status: string;
   tone: string;
   tag: string;
@@ -24,9 +27,23 @@ interface SampleRequest {
 
 const SAMPLE_REQUESTS: SampleRequest[] = [
   {
+    code: "RIP-2026-00011",
+    name: "Haleeman Bibi",
+    district: "Nowshera",
+    location: "Pabbi, GT Road, Nowshera",
+    lat: 33.99,
+    lng: 71.85,
+    status: "Pending Triage",
+    tone: "bg-rose-50 text-rose-700 ring-rose-200",
+    tag: "Food & Shelter Needed",
+  },
+  {
     code: "RIP-2026-00001",
     name: "Fatima Bibi",
     district: "Rawalpindi",
+    location: "Liaquat Bagh, Rawalpindi",
+    lat: 33.5973,
+    lng: 73.0645,
     status: "In Transit",
     tone: "bg-violet-50 text-violet-700 ring-violet-200",
     tag: "Medical & Clean Water Dispatched",
@@ -35,6 +52,9 @@ const SAMPLE_REQUESTS: SampleRequest[] = [
     code: "RIP-2026-00002",
     name: "Bashir Ahmed",
     district: "Nowshera",
+    location: "Kabul River Sector, Nowshera",
+    lat: 34.0153,
+    lng: 71.9747,
     status: "Assigned",
     tone: "bg-sky-50 text-sky-700 ring-sky-200",
     tag: "Evacuation Boat Assigned",
@@ -43,6 +63,9 @@ const SAMPLE_REQUESTS: SampleRequest[] = [
     code: "RIP-2026-00005",
     name: "Muhammad Yousuf",
     district: "Badin",
+    location: "Kadhan, Badin",
+    lat: 24.6833,
+    lng: 68.7667,
     status: "Pending Triage",
     tone: "bg-rose-50 text-rose-700 ring-rose-200",
     tag: "Critical Diarrhea/Fever",
@@ -51,6 +74,9 @@ const SAMPLE_REQUESTS: SampleRequest[] = [
     code: "RIP-2026-00008",
     name: "Saima",
     district: "Lahore",
+    location: "Model Town, Lahore",
+    lat: 31.48,
+    lng: 74.32,
     status: "Resolved",
     tone: "bg-emerald-50 text-emerald-700 ring-emerald-200",
     tag: "Relief Delivered",
@@ -59,7 +85,7 @@ const SAMPLE_REQUESTS: SampleRequest[] = [
 
 export function TrackSearch({ notFound = false }: { notFound?: boolean }) {
   const router = useRouter();
-  const [code, setCode] = useState("RIP-2026-00001");
+  const [code, setCode] = useState("RIP-2026-00011");
 
   useEffect(() => {
     if (notFound) return;
@@ -69,13 +95,13 @@ export function TrackSearch({ notFound = false }: { notFound?: boolean }) {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = (code.trim() || "RIP-2026-00001").toUpperCase();
+    const trimmed = (code.trim() || "RIP-2026-00011").toUpperCase();
     router.push(`/status?code=${encodeURIComponent(trimmed)}`);
   };
 
-  const selectCode = (c: string) => {
-    setCode(c);
-    router.push(`/status?code=${encodeURIComponent(c)}`);
+  const selectSample = (s: SampleRequest) => {
+    setCode(s.code);
+    router.push(`/status?code=${encodeURIComponent(s.code)}&district=${encodeURIComponent(s.district)}&lat=${s.lat}&lng=${s.lng}`);
   };
 
   return (
@@ -148,7 +174,7 @@ export function TrackSearch({ notFound = false }: { notFound?: boolean }) {
             <button
               key={s.code}
               type="button"
-              onClick={() => selectCode(s.code)}
+              onClick={() => selectSample(s)}
               className="flex w-full items-center justify-between rounded-2xl border border-slate-100 bg-white p-3 text-left shadow-xs transition-all hover:border-sky-300 hover:bg-sky-50/40 active:scale-[0.99]"
             >
               <div className="min-w-0 flex-1 leading-tight">
@@ -159,7 +185,7 @@ export function TrackSearch({ notFound = false }: { notFound?: boolean }) {
                   </span>
                 </div>
                 <p className="mt-1 text-[11px] text-slate-500">
-                  {s.name} · {s.district} · <span className="font-medium text-slate-700">{s.tag}</span>
+                  {s.name} · <span className="font-semibold text-slate-700">{s.location}</span> · <span className="font-medium text-channel">{s.tag}</span>
                 </p>
               </div>
               <IconArrowRight className="h-4 w-4 shrink-0 text-slate-300" />

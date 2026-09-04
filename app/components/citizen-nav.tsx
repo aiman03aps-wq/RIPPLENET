@@ -47,6 +47,23 @@ export function CitizenNav({ active, camp }: { active?: CitizenTab; camp?: NavCa
       const qDist = params.get("district");
       const qLat = params.get("lat");
       const qLng = params.get("lng");
+      const qCode = params.get("code");
+
+      if (qCode && !qDist && !qLat) {
+        fetch(`/api/requests/${encodeURIComponent(qCode)}`)
+          .then((r) => r.json())
+          .then((d) => {
+            if (d.request?.camp) {
+              setActiveCamp({
+                name: d.request.camp.name,
+                phone: d.request.camp.phone,
+                district: d.request.camp.district,
+              });
+            }
+          })
+          .catch(() => {});
+        return;
+      }
 
       let url = "/api/camps?limit=1";
       if (qDist) url += `&district=${encodeURIComponent(qDist)}`;
