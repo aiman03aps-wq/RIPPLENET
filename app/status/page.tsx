@@ -99,7 +99,10 @@ export default async function StatusPage(props: {
   const rawLng = searchParams.lng;
   const qLng = (Array.isArray(rawLng) ? rawLng[0] : rawLng)?.trim() ?? "";
 
-  const shell = (children: React.ReactNode) => (
+  const shell = (
+    children: React.ReactNode,
+    navCamp?: { name: string; phone: string; district?: string }
+  ) => (
     <LanguageProvider>
       <div className="relative mx-auto min-h-dvh w-full max-w-[480px] bg-paper shadow-xl">
         <CitizenHeader title="Track Request" subtitle="Live Dispatch Telemetry" />
@@ -113,7 +116,7 @@ export default async function StatusPage(props: {
 
         <main className="pb-[110px]">{children}</main>
 
-        <CitizenNav active="status" />
+        <CitizenNav active="status" camp={navCamp} />
       </div>
     </LanguageProvider>
   );
@@ -529,6 +532,7 @@ export default async function StatusPage(props: {
         <Translated k="nearbyCamps" as="h2" className="font-display text-[19px] font-bold tracking-tight text-ink" />
         <NearbyCamps lat={request.lat} lng={request.lng} />
       </section>
-    </>
+    </>,
+    camp ? { name: camp.name, phone: camp.phone, district: camp.district } : undefined
   );
 }

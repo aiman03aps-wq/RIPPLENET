@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   IconClock,
   IconGlobe,
@@ -15,6 +15,12 @@ import { languages } from "../../lib/citizen-translations";
 
 export type CitizenTab = "home" | "status" | "contact" | "language";
 
+export interface NavCamp {
+  name: string;
+  phone: string;
+  district?: string;
+}
+
 const navItems = [
   { id: "home" as const, labelKey: "home", Icon: IconHome },
   { id: "status" as const, labelKey: "status", Icon: IconClock },
@@ -22,12 +28,41 @@ const navItems = [
   { id: "language" as const, labelKey: "language", Icon: IconGlobe },
 ];
 
-export function CitizenNav({ active }: { active?: CitizenTab }) {
+export function CitizenNav({ active, camp }: { active?: CitizenTab; camp?: NavCamp }) {
   const { lang, setLang, t, openPicker, setOpenPicker } = useLanguage();
   const [contactOpen, setContactOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  const [activeCamp, setActiveCamp] = useState<NavCamp | null>(camp ?? null);
   const showLang = langOpen || openPicker;
   const closeLang = () => { setLangOpen(false); setOpenPicker(false); };
+
+  useEffect(() => {
+    if (camp) {
+      setActiveCamp(camp);
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const qDist = params.get("district");
+      const qLat = params.get("lat");
+      const qLng = params.get("lng");
+
+      let url = "/api/camps?limit=1";
+      if (qDist) url += `&district=${encodeURIComponent(qDist)}`;
+      else if (qLat && qLng) url += `&lat=${qLat}&lng=${qLng}`;
+
+      fetch(url)
+        .then((r) => r.json())
+        .then((d) => {
+          if (Array.isArray(d.camps) && d.camps.length > 0) {
+            const c = d.camps[0];
+            setActiveCamp({ name: c.name, phone: c.phone, district: c.district });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [camp]);
 
   return (
     <>
@@ -158,17 +193,17 @@ export function CitizenNav({ active }: { active?: CitizenTab }) {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                    {t("baseCamp")}
+                    {activeCamp?.district ? `${activeCamp.district} Relief Base` : t("baseCamp")}
                   </p>
                   <p className="mt-0.5 text-[13px] font-bold text-ink">
-                    {t("campName")}
+                    {activeCamp?.name || t("campName")}
                   </p>
                   <p className="mt-0.5 text-[12px] font-semibold tabular-nums text-slate-500">
-                    0300 1234567
+                    {activeCamp?.phone || "051 5551234"}
                   </p>
                 </div>
                 <a
-                  href="tel:03001234567"
+                  href={`tel:${(activeCamp?.phone || "0515551234").replace(/\s+/g, "")}`}
                   className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-white shadow-md transition active:scale-95"
                 >
                   <IconPhone className="h-[18px] w-[18px]" />
