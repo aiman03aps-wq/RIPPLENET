@@ -82,28 +82,26 @@ export function SosChannelsClient() {
           <IconChevronRight className="h-5 w-5 shrink-0 text-slate-300" />
         </Link>
 
-        {/* WhatsApp Voice Note */}
-        <a
-          href="https://wa.me/923001234567"
-          target="_blank"
-          rel="noopener noreferrer"
+        {/* In-App Voice Note (Audio SOS - 7 Regional Languages) */}
+        <Link
+          href="/sos/audio"
           className="flex items-center gap-3.5 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition active:scale-[0.99]"
         >
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-sm">
-            <IconWhatsApp className="h-[26px] w-[26px]" />
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm">
+            <IconMic className="h-6 w-6" />
           </span>
           <span className="min-w-0 flex-1 leading-tight">
             <span className="flex items-center gap-2">
               <Translated k="sendVoiceNote" as="span" className="font-display text-[15px] font-bold text-ink" />
-              <span className="rounded-full bg-emerald-100 px-2 py-[3px] text-[9px] font-bold text-emerald-700">
-                ASR Audio
+              <span className="rounded-full bg-emerald-100 px-2 py-[3px] text-[9px] font-bold text-emerald-800">
+                7 Languages AI
               </span>
             </span>
             <Translated k="voiceNoteDesc" as="span" className="mt-1 block text-[12px] text-slate-500" />
-            <span className="mt-1 block text-[12.5px] font-semibold text-emerald-600">+92 300 1234567</span>
+            <span className="mt-1 block text-[11px] font-semibold text-emerald-700">Urdu · Sindhi · Pashto · Punjabi · Balochi · Hindko · English</span>
           </span>
           <IconChevronRight className="h-5 w-5 shrink-0 text-slate-300" />
-        </a>
+        </Link>
 
         {/* USSD Keypad Simulator */}
         <button

@@ -199,8 +199,12 @@ export function StockDetailsModal({
   });
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 backdrop-blur-xs animate-fade-in">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 backdrop-blur-xs animate-fade-in"
+    >
       <div
+        onClick={(e) => e.stopPropagation()}
         className="w-full max-w-[440px] max-h-[92vh] overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl animate-slide-up"
         role="dialog"
         aria-modal="true"

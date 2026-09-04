@@ -37,7 +37,7 @@ const workflowSteps = [
   {
     step: 1,
     title: "Inspect",
-    desc: "SOS via Voice, SMS or WhatsApp",
+    desc: "SOS via Voice Note, Video or USSD",
     Icon: IconMic,
     tone: "bg-sky-50 text-sky-600",
   },
