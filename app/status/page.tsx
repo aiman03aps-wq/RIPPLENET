@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { CitizenHeader } from "../components/citizen-header";
 import { CitizenNav } from "../components/citizen-nav";
 import { LanguageProvider } from "../components/language-context";
@@ -13,6 +14,8 @@ import {
   IconPhone,
   IconTruck,
   IconWaterKit,
+  IconSparkles,
+  IconChevronRight,
 } from "../components/icons";
 import { prisma } from "../../lib/db";
 import { fetchRoute } from "../../lib/osrm";
@@ -531,6 +534,87 @@ export default async function StatusPage(props: {
       <section className="mt-7 px-5">
         <Translated k="nearbyCamps" as="h2" className="font-display text-[19px] font-bold tracking-tight text-ink" />
         <NearbyCamps lat={request.lat} lng={request.lng} />
+      </section>
+
+      {/* Realistic Sample Request Quick-Selector */}
+      <section className="mt-7 px-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <IconSparkles className="h-4 w-4 text-channel" />
+            <h2 className="font-display text-[15px] font-bold text-ink">Sample Live Requests</h2>
+          </div>
+          <Link
+            href="/status"
+            className="text-[11px] font-bold text-channel hover:underline"
+          >
+            Search Another ID →
+          </Link>
+        </div>
+
+        <div className="mt-3 space-y-2">
+          {[
+            {
+              code: "RIP-2026-00001",
+              name: "Fatima Bibi",
+              district: "Rawalpindi",
+              status: "In Transit",
+              tone: "bg-violet-50 text-violet-700 ring-violet-200",
+              tag: "Medical & Clean Water Dispatched",
+            },
+            {
+              code: "RIP-2026-00002",
+              name: "Bashir Ahmed",
+              district: "Nowshera",
+              status: "Assigned",
+              tone: "bg-sky-50 text-sky-700 ring-sky-200",
+              tag: "Evacuation Boat Assigned",
+            },
+            {
+              code: "RIP-2026-00005",
+              name: "Muhammad Yousuf",
+              district: "Badin",
+              status: "Pending Triage",
+              tone: "bg-rose-50 text-rose-700 ring-rose-200",
+              tag: "Critical Diarrhea/Fever",
+            },
+            {
+              code: "RIP-2026-00008",
+              name: "Saima",
+              district: "Lahore",
+              status: "Resolved",
+              tone: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+              tag: "Relief Delivered",
+            },
+          ].map((s) => (
+            <Link
+              key={s.code}
+              href={`/status?code=${encodeURIComponent(s.code)}`}
+              className={`flex w-full items-center justify-between rounded-2xl border bg-white p-3 text-left shadow-xs transition active:scale-[0.99] ${
+                s.code === request.code
+                  ? "border-channel bg-sky-50/50 ring-2 ring-sky-100"
+                  : "border-slate-100 hover:border-sky-300"
+              }`}
+            >
+              <div className="min-w-0 flex-1 leading-tight">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[12.5px] font-bold text-ink">{s.code}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ring-1 ${s.tone}`}>
+                    {s.status}
+                  </span>
+                  {s.code === request.code && (
+                    <span className="rounded-full bg-channel px-1.5 py-0.5 text-[8.5px] font-bold text-white">
+                      Active
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  {s.name} · {s.district} · <span className="font-medium text-slate-700">{s.tag}</span>
+                </p>
+              </div>
+              <IconChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
+            </Link>
+          ))}
+        </div>
       </section>
     </>,
     camp ? { name: camp.name, phone: camp.phone, district: camp.district } : undefined

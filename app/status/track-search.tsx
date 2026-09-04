@@ -64,8 +64,8 @@ export function TrackSearch({ notFound = false }: { notFound?: boolean }) {
   useEffect(() => {
     if (notFound) return;
     const last = localStorage.getItem("citizen_last_request");
-    if (last) router.replace(`/status?code=${encodeURIComponent(last)}`);
-  }, [notFound, router]);
+    if (last) setCode(last);
+  }, [notFound]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
