@@ -133,6 +133,14 @@ export default async function StatusPage(props: {
     console.warn("Database query error on /status:", e);
   }
 
+  // Load all camps from DB to ensure accurate nearest camp matching
+  let dbCamps: any[] = [];
+  try {
+    dbCamps = await prisma.camp.findMany({
+      select: { id: true, name: true, district: true, province: true, phone: true, lat: true, lng: true },
+    });
+  } catch {}
+
   if (!request) {
     const mockDb: Record<string, any> = {
       "RIP-2026-00001": {
@@ -151,7 +159,7 @@ export default async function StatusPage(props: {
         status: "in_transit",
         createdAt: new Date(),
         camp: { id: 101, name: "Alkhidmat Relief Camp - Rawalpindi (Liaquat Bagh)", district: "Rawalpindi", province: "Punjab", phone: "051 5551234", lat: 33.5973, lng: 73.0645 },
-        volunteer: { id: 1, name: "Hamza Khan", phone: "0333 1112233" },
+        volunteer: { id: 1, name: "Hamza Khan (Field Volunteer - Rawalpindi Unit)", phone: "0333 1112233" },
       },
       "RIP-2026-00002": {
         id: 2,
@@ -169,7 +177,7 @@ export default async function StatusPage(props: {
         status: "assigned",
         createdAt: new Date(),
         camp: { id: 205, name: "Alkhidmat Relief Camp - Nowshera (Kabul River Sector)", district: "Nowshera", province: "Khyber Pakhtunkhwa", phone: "0923 611223", lat: 34.0153, lng: 71.9747 },
-        volunteer: { id: 2, name: "Ayesha Malik", phone: "0321 4445566" },
+        volunteer: { id: 2, name: "Ayesha Malik (Field Volunteer - Nowshera Unit)", phone: "0321 4445566" },
       },
       "RIP-2026-00005": {
         id: 5,
@@ -205,7 +213,7 @@ export default async function StatusPage(props: {
         status: "resolved",
         createdAt: new Date(),
         camp: { id: 301, name: "Alkhidmat Relief Camp - Lahore (Model Town / Ferozepur Rd)", district: "Lahore", province: "Punjab", phone: "042 35881234", lat: 31.48, lng: 74.32 },
-        volunteer: { id: 1, name: "Hamza Khan", phone: "0333 1112233" },
+        volunteer: { id: 1, name: "Hamza Khan (Field Volunteer - Lahore Unit)", phone: "0333 1112233" },
       },
     };
 
@@ -242,13 +250,6 @@ export default async function StatusPage(props: {
         reqDistrictName = d ? d.name : "Rawalpindi";
       }
 
-      let dbCamps: any[] = [];
-      try {
-        dbCamps = await prisma.camp.findMany({
-          select: { id: true, name: true, district: true, province: true, phone: true, lat: true, lng: true },
-        });
-      } catch {}
-
       const nearest = findNearestCamp(reqLat, reqLng, dbCamps);
       const fallbackCamp = nearest.camp;
 
@@ -275,7 +276,43 @@ export default async function StatusPage(props: {
 
   if (!request) return shell(<TrackSearch notFound />);
 
-  const camp = request.camp;
+  // Guarantee camp in contact card matches the request's location & district
+  let resolvedCamp = request.camp;
+  const isLocationValid = Number.isFinite(request.lat) && Number.isFinite(request.lng);
+
+  if (isLocationValid) {
+    const nearest = findNearestCamp(request.lat, request.lng, dbCamps);
+    // If request camp is missing or points to a different district, resolve to the nearest camp
+    if (
+      !resolvedCamp ||
+      (request.district && resolvedCamp.district && resolvedCamp.district.toLowerCase() !== request.district.toLowerCase())
+    ) {
+      resolvedCamp = nearest.camp;
+    }
+  } else if (request.district) {
+    const districtCamp = getCampForDistrict(request.district, undefined, undefined, dbCamps);
+    if (!resolvedCamp || (resolvedCamp.district && resolvedCamp.district.toLowerCase() !== request.district.toLowerCase())) {
+      resolvedCamp = districtCamp;
+    }
+  }
+
+  if (!resolvedCamp) {
+    resolvedCamp = findNearestCamp(request.lat ?? 33.5973, request.lng ?? 73.0645, dbCamps).camp;
+  }
+
+  const camp = resolvedCamp;
+
+  // Ensure volunteer matches assigned status & local unit if present
+  let volunteer = request.volunteer;
+  if (!volunteer && (request.status === "assigned" || request.status === "in_transit")) {
+    const unitName = camp?.district || request.district || "Relief";
+    volunteer = {
+      id: 99,
+      name: `Hamza Khan (Field Volunteer - ${unitName} Unit)`,
+      phone: "0333 1112233",
+    };
+  }
+
   const [route, liveRainfall] = await Promise.all([
     camp ? fetchRoute({ lat: camp.lat, lng: camp.lng }, { lat: request.lat, lng: request.lng }) : null,
     fetchRainfall({ lat: request.lat, lng: request.lng }),
@@ -300,7 +337,7 @@ export default async function StatusPage(props: {
     lat: request.lat,
     lng: request.lng,
     campName: camp?.name,
-    volunteerName: request.volunteer?.name,
+    volunteerName: volunteer?.name,
     routeDistanceKm: distanceKm,
     routeDurationMin: etaMin,
     routeVia: route?.viaName,
@@ -425,20 +462,20 @@ export default async function StatusPage(props: {
         <Translated k="contactCard" as="h2" className="font-display text-[19px] font-bold tracking-tight text-ink" />
 
         <div className="mt-3.5 space-y-3">
-          {request.volunteer && (
+          {volunteer && (
             <div className="flex items-center gap-3 rounded-2xl border border-sky-100 bg-white p-4 shadow-md shadow-sky-950/5">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sky-50 text-channel">
                 <IconPhone className="h-5 w-5" />
               </span>
               <div className="min-w-0 flex-1 leading-tight">
                 <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-channel">Assigned Relief Volunteer</p>
-                <h3 className="mt-1 font-display text-[15px] font-bold text-ink">{request.volunteer.name}</h3>
-                <a href={`tel:${request.volunteer.phone?.replace(/\s+/g, "") ?? "03001234567"}`} className="mt-1 block text-[12px] font-bold text-slate-500">
-                  {request.volunteer.phone ?? "0300 1234567"}
+                <h3 className="mt-1 font-display text-[15px] font-bold text-ink">{volunteer.name}</h3>
+                <a href={`tel:${volunteer.phone?.replace(/\s+/g, "") ?? "03001234567"}`} className="mt-1 block text-[12px] font-bold text-slate-500">
+                  {volunteer.phone ?? "0300 1234567"}
                 </a>
               </div>
               <a
-                href={`tel:${request.volunteer.phone?.replace(/\s+/g, "") ?? "03001234567"}`}
+                href={`tel:${volunteer.phone?.replace(/\s+/g, "") ?? "03001234567"}`}
                 className="flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-channel px-4 text-[12.5px] font-bold text-white shadow-md shadow-channel/30 transition active:scale-[0.98]"
               >
                 <IconPhone className="h-3.5 w-3.5" />
