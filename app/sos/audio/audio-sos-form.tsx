@@ -303,11 +303,29 @@ export function AudioSosForm() {
   function initSpeechRecognition() {
     if (typeof window === "undefined") return null;
     const SpeechClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechClass) return null;
+    if (!SpeechClass) {
+      if (isRecordingRef.current && !hasReceivedSpeechResultsRef.current) {
+        startStreamingTranscription(currentPreset.transcript);
+      }
+      return null;
+    }
+
+    // Safely abort and cleanup any previous instance to prevent collision
+    if (speechRecRef.current) {
+      try {
+        speechRecRef.current.onend = null;
+        speechRecRef.current.onerror = null;
+        speechRecRef.current.onresult = null;
+        speechRecRef.current.abort();
+      } catch {}
+      speechRecRef.current = null;
+    }
 
     try {
       const rec = new SpeechClass();
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      const isIOS =
+        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (typeof navigator !== "undefined" && navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
       rec.continuous = !isIOS;
       rec.interimResults = true;
       rec.maxAlternatives = 1;
@@ -349,12 +367,14 @@ export function AudioSosForm() {
       };
 
       rec.onerror = (e: any) => {
-        console.warn("Speech recognition error:", e?.error);
         const err = e?.error;
+        if (err === "no-speech" || err === "aborted") {
+          return;
+        }
+        console.warn("Speech recognition error:", err);
         if (err === "language-not-supported" && rec.lang !== "ur-PK" && rec.lang !== "en-US") {
           try {
             rec.lang = "ur-PK";
-            if (isRecordingRef.current) rec.start();
             return;
           } catch {}
         }
@@ -375,7 +395,7 @@ export function AudioSosForm() {
                 initSpeechRecognition();
               }
             }
-          }, 120);
+          }, 100);
         } else {
           setIsTranscribing(false);
         }
@@ -387,6 +407,9 @@ export function AudioSosForm() {
       return rec;
     } catch (err) {
       console.warn("Speech recognition start fallback:", err);
+      if (isRecordingRef.current && !hasReceivedSpeechResultsRef.current) {
+        startStreamingTranscription(currentPreset.transcript);
+      }
       return null;
     }
   }
@@ -400,8 +423,20 @@ export function AudioSosForm() {
 
     setFormError("");
     setHasRecordedAudio(false);
-    setAudioUrl(null);
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+      setAudioUrl(null);
+    }
     setIsPlayingAudio(false);
+    if (audioPlayerRef.current) {
+      try {
+        audioPlayerRef.current.pause();
+      } catch {}
+    }
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+
     setLiveTranscript("");
     setStreamedWordIndex(0);
     accumulatedTranscriptRef.current = "";
@@ -409,11 +444,13 @@ export function AudioSosForm() {
     setIsRecording(true);
     setRecordElapsed(0);
     hasReceivedSpeechResultsRef.current = false;
+    audioChunksRef.current = [];
+
     window.clearTimeout(speechFallbackTimerRef.current);
     window.clearTimeout(restartTimeoutRef.current);
     window.clearInterval(streamTimerRef.current);
 
-    // Start elapsed timer immediately from turn 1
+    // Start elapsed timer immediately from first tap
     window.clearInterval(timerRef.current);
     timerRef.current = window.setInterval(() => {
       setRecordElapsed((prev) => {
@@ -425,20 +462,19 @@ export function AudioSosForm() {
       });
     }, 1000);
 
-    // 1. Immediately launch speech recognition synchronously within user gesture turn
+    // 1. Immediately launch speech recognition synchronously within user gesture
     initSpeechRecognition();
 
-    // 2. Safety fallback timer: if no speech results delivered within 800ms, start live transcription stream
-    speechFallbackTimerRef.current = window.setTimeout(() => {
-      if (isRecordingRef.current && !hasReceivedSpeechResultsRef.current) {
-        startStreamingTranscription(currentPreset.transcript);
-      }
-    }, 800);
-
-    // 3. Start Background MediaRecorder Capture
+    // 2. Start Background MediaRecorder Capture
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+
       // If user pressed stop while getUserMedia was resolving, immediately kill stream and exit
       if (!isRecordingRef.current) {
         stream.getTracks().forEach((track) => track.stop());
@@ -447,14 +483,7 @@ export function AudioSosForm() {
 
       mediaStreamRef.current = stream;
 
-      // When mic permission is granted on the first try, ensure speech recognition is running actively
-      if (isRecordingRef.current && !hasReceivedSpeechResultsRef.current) {
-        try {
-          initSpeechRecognition();
-        } catch {}
-      }
-
-      let mimeType = "audio/webm";
+      let mimeType = "";
       if (typeof MediaRecorder !== "undefined") {
         if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
           mimeType = "audio/webm;codecs=opus";
@@ -462,6 +491,8 @@ export function AudioSosForm() {
           mimeType = "audio/webm";
         } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
           mimeType = "audio/mp4";
+        } else if (MediaRecorder.isTypeSupported("audio/aac")) {
+          mimeType = "audio/aac";
         }
       }
 
@@ -476,23 +507,28 @@ export function AudioSosForm() {
       };
 
       mediaRecorder.onstop = () => {
-        const actualMime = mediaRecorder.mimeType || mimeType;
-        const audioBlob = new Blob(audioChunksRef.current, { type: actualMime });
-        const url = URL.createObjectURL(audioBlob);
-        setAudioUrl(url);
-        setHasRecordedAudio(true);
+        if (audioChunksRef.current.length > 0) {
+          const actualMime = mediaRecorder.mimeType || mimeType || "audio/webm";
+          const audioBlob = new Blob(audioChunksRef.current, { type: actualMime });
+          const url = URL.createObjectURL(audioBlob);
+          setAudioUrl(url);
+          setHasRecordedAudio(true);
+        }
       };
 
-      mediaRecorder.start(250);
+      // Record chunks every 200ms
+      mediaRecorder.start(200);
     } catch (err) {
       console.warn("Microphone access fallback:", err);
       if (!isRecordingRef.current) return;
-      
-      startStreamingTranscription(currentPreset.transcript);
+
+      if (!hasReceivedSpeechResultsRef.current) {
+        startStreamingTranscription(currentPreset.transcript);
+      }
     }
   }
 
-  // Stop Recording immediately and release all microphone & speech instances
+  // Stop Recording immediately and release all microphone & speech instances cleanly
   function stopRecording() {
     isRecordingRef.current = false;
     window.clearTimeout(restartTimeoutRef.current);
@@ -502,38 +538,44 @@ export function AudioSosForm() {
     setIsRecording(false);
     setIsTranscribing(false);
 
-    // 1. Immediately release hardware microphone tracks
-    if (mediaStreamRef.current) {
-      try {
-        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      } catch {}
-      mediaStreamRef.current = null;
-    }
-
-    // 2. Abort SpeechRecognition and detach event handlers to prevent auto-restart
+    // 1. Safely stop Speech Recognition
     if (speechRecRef.current) {
       try {
         speechRecRef.current.onend = null;
         speechRecRef.current.onerror = null;
         speechRecRef.current.onresult = null;
-        speechRecRef.current.abort();
+        speechRecRef.current.stop();
       } catch {}
       speechRecRef.current = null;
     }
 
-    // 3. Stop MediaRecorder
-    if (mediaRecorderRef.current) {
+    // 2. Safely stop MediaRecorder FIRST and flush buffered data
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== "inactive") {
       try {
-        if (mediaRecorderRef.current.state !== "inactive") {
-          mediaRecorderRef.current.stop();
-        }
+        recorder.requestData();
       } catch {}
-      mediaRecorderRef.current = null;
+      try {
+        recorder.stop();
+      } catch {}
     }
+    mediaRecorderRef.current = null;
+
+    // 3. Stop MediaStream hardware tracks with small delay to ensure all chunks flushed
+    const stream = mediaStreamRef.current;
+    if (stream) {
+      setTimeout(() => {
+        try {
+          stream.getTracks().forEach((track) => track.stop());
+        } catch {}
+      }, 150);
+      mediaStreamRef.current = null;
+    }
+
     setHasRecordedAudio(true);
 
-    // 4. Ensure full text is present if recording ended with empty text
-    if (!liveTranscript.trim()) {
+    // 4. Ensure transcript has text if recording completed without any words
+    if (!liveTranscript.trim() && !accumulatedTranscriptRef.current.trim()) {
       setLiveTranscript(currentPreset.transcript);
       setStreamedWordIndex(currentPreset.transcript.split(" ").length);
     }
@@ -543,7 +585,9 @@ export function AudioSosForm() {
   function togglePlayAudio() {
     if (isPlayingAudio) {
       if (audioPlayerRef.current) {
-        audioPlayerRef.current.pause();
+        try {
+          audioPlayerRef.current.pause();
+        } catch {}
       }
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.cancel();
@@ -554,22 +598,24 @@ export function AudioSosForm() {
       return;
     }
 
-    // Stream transcription in real-time as voice is being played
-    startStreamingTranscription(currentPreset.transcript);
-
     if (audioUrl) {
       if (!audioPlayerRef.current) {
         audioPlayerRef.current = new Audio(audioUrl);
       } else {
         audioPlayerRef.current.src = audioUrl;
       }
-      audioPlayerRef.current.play().catch(() => {});
+      audioPlayerRef.current.play().catch((err) => {
+        console.warn("Recorded audio playback failed:", err);
+      });
       audioPlayerRef.current.onended = () => {
         setIsPlayingAudio(false);
         setIsTranscribing(false);
       };
       setIsPlayingAudio(true);
     } else {
+      // Stream transcription in real-time as voice is being played
+      startStreamingTranscription(currentPreset.transcript);
+
       // Use speech synthesis for authentic regional accent speech
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.cancel();
