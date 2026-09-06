@@ -167,6 +167,7 @@ export function AudioSosForm() {
   } | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number>(undefined);
   const streamTimerRef = useRef<number>(undefined);
@@ -242,18 +243,35 @@ export function AudioSosForm() {
   // Cleanup timers & speech recognition
   useEffect(() => {
     return () => {
+      isRecordingRef.current = false;
       window.clearInterval(timerRef.current);
       window.clearInterval(streamTimerRef.current);
       window.clearTimeout(speechFallbackTimerRef.current);
       window.clearTimeout(restartTimeoutRef.current);
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
+      if (mediaStreamRef.current) {
+        try {
+          mediaStreamRef.current.getTracks().forEach((t) => t.stop());
+        } catch {}
+        mediaStreamRef.current = null;
       }
       if (speechRecRef.current) {
         try {
-          speechRecRef.current.stop();
+          speechRecRef.current.onend = null;
+          speechRecRef.current.onerror = null;
+          speechRecRef.current.onresult = null;
+          speechRecRef.current.abort();
         } catch {}
+        speechRecRef.current = null;
+      }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        try {
+          mediaRecorderRef.current.stop();
+        } catch {}
+        mediaRecorderRef.current = null;
+      }
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
       }
     };
   }, [audioUrl]);
@@ -346,11 +364,11 @@ export function AudioSosForm() {
       };
 
       rec.onend = () => {
-        // Mobile browsers stop on speech pauses; automatically resume listening if recording is active
-        if (isRecordingRef.current) {
+        // Mobile browsers stop on speech pauses; automatically resume listening only if recording is still active
+        if (isRecordingRef.current && speechRecRef.current === rec) {
           window.clearTimeout(restartTimeoutRef.current);
           restartTimeoutRef.current = window.setTimeout(() => {
-            if (isRecordingRef.current) {
+            if (isRecordingRef.current && speechRecRef.current === rec) {
               try {
                 rec.start();
               } catch {
@@ -375,6 +393,11 @@ export function AudioSosForm() {
 
   // Start Real Live Recording with SpeechRecognition & Audio Capture
   async function startRecording() {
+    if (isRecordingRef.current) {
+      stopRecording();
+      return;
+    }
+
     setFormError("");
     setHasRecordedAudio(false);
     setAudioUrl(null);
@@ -383,6 +406,7 @@ export function AudioSosForm() {
     setStreamedWordIndex(0);
     accumulatedTranscriptRef.current = "";
     isRecordingRef.current = true;
+    setIsRecording(true);
     hasReceivedSpeechResultsRef.current = false;
     window.clearTimeout(speechFallbackTimerRef.current);
     window.clearTimeout(restartTimeoutRef.current);
@@ -402,6 +426,14 @@ export function AudioSosForm() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
+      // If user pressed stop while getUserMedia was resolving, immediately kill stream and exit
+      if (!isRecordingRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+
+      mediaStreamRef.current = stream;
+
       let mimeType = "audio/webm";
       if (typeof MediaRecorder !== "undefined") {
         if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
@@ -429,11 +461,9 @@ export function AudioSosForm() {
         const url = URL.createObjectURL(audioBlob);
         setAudioUrl(url);
         setHasRecordedAudio(true);
-        stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorder.start(250);
-      setIsRecording(true);
       setRecordElapsed(0);
 
       window.clearInterval(timerRef.current);
@@ -448,7 +478,8 @@ export function AudioSosForm() {
       }, 1000);
     } catch (err) {
       console.warn("Microphone access fallback:", err);
-      setIsRecording(true);
+      if (!isRecordingRef.current) return;
+      
       setRecordElapsed(0);
       startStreamingTranscription(currentPreset.transcript);
 
@@ -465,7 +496,7 @@ export function AudioSosForm() {
     }
   }
 
-  // Stop Recording
+  // Stop Recording immediately and release all microphone & speech instances
   function stopRecording() {
     isRecordingRef.current = false;
     window.clearTimeout(restartTimeoutRef.current);
@@ -475,21 +506,37 @@ export function AudioSosForm() {
     setIsRecording(false);
     setIsTranscribing(false);
 
+    // 1. Immediately release hardware microphone tracks
+    if (mediaStreamRef.current) {
+      try {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      } catch {}
+      mediaStreamRef.current = null;
+    }
+
+    // 2. Abort SpeechRecognition and detach event handlers to prevent auto-restart
     if (speechRecRef.current) {
       try {
-        speechRecRef.current.stop();
+        speechRecRef.current.onend = null;
+        speechRecRef.current.onerror = null;
+        speechRecRef.current.onresult = null;
+        speechRecRef.current.abort();
       } catch {}
+      speechRecRef.current = null;
     }
 
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+    // 3. Stop MediaRecorder
+    if (mediaRecorderRef.current) {
       try {
-        mediaRecorderRef.current.stop();
+        if (mediaRecorderRef.current.state !== "inactive") {
+          mediaRecorderRef.current.stop();
+        }
       } catch {}
-    } else {
-      setHasRecordedAudio(true);
+      mediaRecorderRef.current = null;
     }
+    setHasRecordedAudio(true);
 
-    // Ensure full text is present if recording ended with empty text
+    // 4. Ensure full text is present if recording ended with empty text
     if (!liveTranscript.trim()) {
       setLiveTranscript(currentPreset.transcript);
       setStreamedWordIndex(currentPreset.transcript.split(" ").length);
