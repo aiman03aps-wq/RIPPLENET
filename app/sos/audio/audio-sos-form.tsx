@@ -178,6 +178,10 @@ export function AudioSosForm() {
   const hasReceivedSpeechResultsRef = useRef<boolean>(false);
   const accumulatedTranscriptRef = useRef<string>("");
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animFrameRef = useRef<number>(undefined);
+  const [liveVolumeLevels, setLiveVolumeLevels] = useState<number[]>(new Array(20).fill(6));
 
   // Map regional dialects to the best supported mobile speech recognition engine codes
   function getSupportedSpeechLang(langCode: string): string {
@@ -244,6 +248,12 @@ export function AudioSosForm() {
   useEffect(() => {
     return () => {
       isRecordingRef.current = false;
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      if (audioContextRef.current) {
+        try {
+          audioContextRef.current.close();
+        } catch {}
+      }
       window.clearInterval(timerRef.current);
       window.clearInterval(streamTimerRef.current);
       window.clearTimeout(speechFallbackTimerRef.current);
@@ -296,7 +306,62 @@ export function AudioSosForm() {
         window.clearInterval(streamTimerRef.current);
         setIsTranscribing(false);
       }
-    }, 240);
+    }, 220);
+  }
+
+  // Start Live Audio Visualizer connected to real device microphone volume
+  function startLiveAudioVisualizer(stream: MediaStream) {
+    if (typeof window === "undefined") return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      
+      const audioCtx = new AudioCtx();
+      audioContextRef.current = audioCtx;
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 64;
+      analyser.smoothingTimeConstant = 0.6;
+      source.connect(analyser);
+      analyserRef.current = analyser;
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+      const renderVolume = () => {
+        if (!isRecordingRef.current) return;
+        analyser.getByteFrequencyData(dataArray);
+        
+        const levels = [];
+        for (let i = 0; i < 20; i++) {
+          const val = dataArray[i % dataArray.length] || 0;
+          // Scale from 6px to 54px
+          const barHeight = Math.max(6, Math.min(54, Math.round((val / 255) * 54)));
+          levels.push(barHeight);
+        }
+        setLiveVolumeLevels(levels);
+        animFrameRef.current = requestAnimationFrame(renderVolume);
+      };
+
+      animFrameRef.current = requestAnimationFrame(renderVolume);
+    } catch (e) {
+      console.warn("Audio visualizer initialization notice:", e);
+    }
+  }
+
+  // Stop Live Audio Visualizer
+  function stopLiveAudioVisualizer() {
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = undefined;
+    }
+    if (audioContextRef.current) {
+      try {
+        audioContextRef.current.close();
+      } catch {}
+      audioContextRef.current = null;
+    }
+    analyserRef.current = null;
+    setLiveVolumeLevels(new Array(20).fill(6));
   }
 
   // Initialize and run mobile-compatible Web Speech Recognition
@@ -371,7 +436,7 @@ export function AudioSosForm() {
         if (err === "no-speech" || err === "aborted") {
           return;
         }
-        console.warn("Speech recognition error:", err);
+        console.warn("Speech recognition notice:", err);
         if (err === "language-not-supported" && rec.lang !== "ur-PK" && rec.lang !== "en-US") {
           try {
             rec.lang = "ur-PK";
@@ -384,16 +449,12 @@ export function AudioSosForm() {
       };
 
       rec.onend = () => {
-        // Mobile browsers stop on speech pauses; automatically resume listening only if recording is still active
-        if (isRecordingRef.current && speechRecRef.current === rec) {
+        // Mobile browsers stop on speech pauses; automatically resume listening if recording is still active
+        if (isRecordingRef.current) {
           window.clearTimeout(restartTimeoutRef.current);
           restartTimeoutRef.current = window.setTimeout(() => {
-            if (isRecordingRef.current && speechRecRef.current === rec) {
-              try {
-                rec.start();
-              } catch {
-                initSpeechRecognition();
-              }
+            if (isRecordingRef.current) {
+              initSpeechRecognition();
             }
           }, 100);
         } else {
@@ -406,15 +467,49 @@ export function AudioSosForm() {
       setIsTranscribing(true);
       return rec;
     } catch (err) {
-      console.warn("Speech recognition start fallback:", err);
-      if (isRecordingRef.current && !hasReceivedSpeechResultsRef.current) {
-        startStreamingTranscription(currentPreset.transcript);
+      console.warn("Speech recognition start attempt:", err);
+      if (isRecordingRef.current) {
+        window.clearTimeout(restartTimeoutRef.current);
+        restartTimeoutRef.current = window.setTimeout(() => {
+          if (isRecordingRef.current && !speechRecRef.current) {
+            initSpeechRecognition();
+          }
+        }, 200);
       }
       return null;
     }
   }
 
-  // Start Real Live Recording with SpeechRecognition & Audio Capture
+  // Cross-browser microphone stream accessor
+  async function getAudioMediaStream(): Promise<MediaStream | null> {
+    if (typeof navigator === "undefined") return null;
+
+    if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function") {
+      return await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+    }
+
+    const legacyGetUserMedia =
+      (navigator as any).getUserMedia ||
+      (navigator as any).webkitGetUserMedia ||
+      (navigator as any).mozGetUserMedia ||
+      (navigator as any).msGetUserMedia;
+
+    if (legacyGetUserMedia) {
+      return new Promise<MediaStream>((resolve, reject) => {
+        legacyGetUserMedia.call(navigator, { audio: true }, resolve, reject);
+      });
+    }
+
+    return null;
+  }
+
+  // Start Live Recording with SpeechRecognition, Audio Visualizer & MediaRecorder Capture
   async function startRecording() {
     if (isRecordingRef.current) {
       stopRecording();
@@ -431,6 +526,7 @@ export function AudioSosForm() {
     if (audioPlayerRef.current) {
       try {
         audioPlayerRef.current.pause();
+        audioPlayerRef.current.currentTime = 0;
       } catch {}
     }
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -450,7 +546,7 @@ export function AudioSosForm() {
     window.clearTimeout(restartTimeoutRef.current);
     window.clearInterval(streamTimerRef.current);
 
-    // Start elapsed timer immediately from first tap
+    // Start elapsed timer immediately
     window.clearInterval(timerRef.current);
     timerRef.current = window.setInterval(() => {
       setRecordElapsed((prev) => {
@@ -465,61 +561,63 @@ export function AudioSosForm() {
     // 1. Immediately launch speech recognition synchronously within user gesture
     initSpeechRecognition();
 
-    // 2. Start Background MediaRecorder Capture
+    // 2. Start Microphone Stream & Background MediaRecorder Capture
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
+      const stream = await getAudioMediaStream();
 
-      // If user pressed stop while getUserMedia was resolving, immediately kill stream and exit
+      // If user pressed stop while stream was resolving, immediately kill stream and exit
       if (!isRecordingRef.current) {
-        stream.getTracks().forEach((track) => track.stop());
+        if (stream) stream.getTracks().forEach((track) => track.stop());
         return;
       }
 
-      mediaStreamRef.current = stream;
+      if (stream) {
+        mediaStreamRef.current = stream;
+        startLiveAudioVisualizer(stream);
 
-      let mimeType = "";
-      if (typeof MediaRecorder !== "undefined") {
-        if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
-          mimeType = "audio/webm;codecs=opus";
-        } else if (MediaRecorder.isTypeSupported("audio/webm")) {
-          mimeType = "audio/webm";
-        } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
-          mimeType = "audio/mp4";
-        } else if (MediaRecorder.isTypeSupported("audio/aac")) {
-          mimeType = "audio/aac";
+        let mimeType = "";
+        if (typeof MediaRecorder !== "undefined") {
+          if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+            mimeType = "audio/webm;codecs=opus";
+          } else if (MediaRecorder.isTypeSupported("audio/webm")) {
+            mimeType = "audio/webm";
+          } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
+            mimeType = "audio/mp4";
+          } else if (MediaRecorder.isTypeSupported("audio/aac")) {
+            mimeType = "audio/aac";
+          }
+        }
+
+        const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data && event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          if (audioChunksRef.current.length > 0) {
+            const actualMime = mediaRecorder.mimeType || mimeType || "audio/webm";
+            const audioBlob = new Blob(audioChunksRef.current, { type: actualMime });
+            const url = URL.createObjectURL(audioBlob);
+            setAudioUrl(url);
+            setHasRecordedAudio(true);
+          }
+        };
+
+        // Record chunks every 100ms
+        mediaRecorder.start(100);
+      } else {
+        // If stream could not be acquired, run simulation fallback
+        if (!hasReceivedSpeechResultsRef.current) {
+          startStreamingTranscription(currentPreset.transcript);
         }
       }
-
-      const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        if (audioChunksRef.current.length > 0) {
-          const actualMime = mediaRecorder.mimeType || mimeType || "audio/webm";
-          const audioBlob = new Blob(audioChunksRef.current, { type: actualMime });
-          const url = URL.createObjectURL(audioBlob);
-          setAudioUrl(url);
-          setHasRecordedAudio(true);
-        }
-      };
-
-      // Record chunks every 200ms
-      mediaRecorder.start(200);
     } catch (err) {
-      console.warn("Microphone access fallback:", err);
+      console.warn("Microphone capture notice:", err);
       if (!isRecordingRef.current) return;
 
       if (!hasReceivedSpeechResultsRef.current) {
@@ -528,7 +626,7 @@ export function AudioSosForm() {
     }
   }
 
-  // Stop Recording immediately and release all microphone & speech instances cleanly
+  // Stop Recording cleanly and release all microphone & speech instances
   function stopRecording() {
     isRecordingRef.current = false;
     window.clearTimeout(restartTimeoutRef.current);
@@ -537,6 +635,7 @@ export function AudioSosForm() {
     window.clearInterval(streamTimerRef.current);
     setIsRecording(false);
     setIsTranscribing(false);
+    stopLiveAudioVisualizer();
 
     // 1. Safely stop Speech Recognition
     if (speechRecRef.current) {
@@ -549,7 +648,7 @@ export function AudioSosForm() {
       speechRecRef.current = null;
     }
 
-    // 2. Safely stop MediaRecorder FIRST and flush buffered data
+    // 2. Safely stop MediaRecorder and flush buffered data
     const recorder = mediaRecorderRef.current;
     if (recorder && recorder.state !== "inactive") {
       try {
@@ -574,7 +673,7 @@ export function AudioSosForm() {
 
     setHasRecordedAudio(true);
 
-    // 4. Ensure transcript has text if recording completed without any words
+    // 4. Ensure transcript has text if recording completed without spoken words
     if (!liveTranscript.trim() && !accumulatedTranscriptRef.current.trim()) {
       setLiveTranscript(currentPreset.transcript);
       setStreamedWordIndex(currentPreset.transcript.split(" ").length);
@@ -587,6 +686,7 @@ export function AudioSosForm() {
       if (audioPlayerRef.current) {
         try {
           audioPlayerRef.current.pause();
+          audioPlayerRef.current.currentTime = 0;
         } catch {}
       }
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -785,8 +885,9 @@ export function AudioSosForm() {
           {/* Animated Waveform Visualization */}
           <div className="my-5 flex h-14 items-center justify-center gap-1.5">
             {[4, 8, 14, 22, 35, 48, 30, 18, 42, 52, 28, 16, 38, 24, 12, 6, 18, 32, 45, 20].map((h, i) => {
+              const liveH = liveVolumeLevels[i] || 6;
               const dynamicHeight = isRecording
-                ? `${Math.max(8, (h * (1 + (i % 3) * 0.4)) % 52)}px`
+                ? `${liveH > 8 ? liveH : Math.max(8, (h * (1 + (recordElapsed % 4) * 0.35)) % 52)}px`
                 : isPlayingAudio || isTranscribing
                 ? `${Math.max(6, (h * 0.8) % 44)}px`
                 : "6px";
@@ -795,7 +896,7 @@ export function AudioSosForm() {
                 <span
                   key={i}
                   style={{ height: dynamicHeight }}
-                  className={`w-1.5 rounded-full transition-all duration-150 ${
+                  className={`w-1.5 rounded-full transition-all duration-100 ${
                     isRecording
                       ? "bg-red-500"
                       : isTranscribing || isPlayingAudio
