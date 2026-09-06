@@ -680,6 +680,34 @@ export function AudioSosForm() {
     }
   }
 
+  // Play authentic regional voice sample via speech synthesis
+  function playSampleVoice() {
+    startStreamingTranscription(currentPreset.transcript);
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(currentPreset.transcript);
+      utterance.lang = currentPreset.speechLang;
+      utterance.rate = 0.92;
+      utterance.pitch = 1.0;
+      utterance.onend = () => {
+        setIsPlayingAudio(false);
+        setIsTranscribing(false);
+      };
+      utterance.onerror = () => {
+        setIsPlayingAudio(false);
+        setIsTranscribing(false);
+      };
+      window.speechSynthesis.speak(utterance);
+      setIsPlayingAudio(true);
+    } else {
+      setIsPlayingAudio(true);
+      setTimeout(() => {
+        setIsPlayingAudio(false);
+        setIsTranscribing(false);
+      }, 4500);
+    }
+  }
+
   // Play Recorded Audio or Regional Voice Sample with Real-Time Synced Transcription
   function togglePlayAudio() {
     if (isPlayingAudio) {
@@ -704,42 +732,21 @@ export function AudioSosForm() {
       } else {
         audioPlayerRef.current.src = audioUrl;
       }
-      audioPlayerRef.current.play().catch((err) => {
-        console.warn("Recorded audio playback failed:", err);
-      });
+      audioPlayerRef.current
+        .play()
+        .then(() => {
+          setIsPlayingAudio(true);
+        })
+        .catch((err) => {
+          console.warn("Recorded audio playback notice:", err);
+          playSampleVoice();
+        });
       audioPlayerRef.current.onended = () => {
         setIsPlayingAudio(false);
         setIsTranscribing(false);
       };
-      setIsPlayingAudio(true);
     } else {
-      // Stream transcription in real-time as voice is being played
-      startStreamingTranscription(currentPreset.transcript);
-
-      // Use speech synthesis for authentic regional accent speech
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(currentPreset.transcript);
-        utterance.lang = currentPreset.speechLang;
-        utterance.rate = 0.92;
-        utterance.pitch = 1.0;
-        utterance.onend = () => {
-          setIsPlayingAudio(false);
-          setIsTranscribing(false);
-        };
-        utterance.onerror = () => {
-          setIsPlayingAudio(false);
-          setIsTranscribing(false);
-        };
-        window.speechSynthesis.speak(utterance);
-        setIsPlayingAudio(true);
-      } else {
-        setIsPlayingAudio(true);
-        setTimeout(() => {
-          setIsPlayingAudio(false);
-          setIsTranscribing(false);
-        }, 4500);
-      }
+      playSampleVoice();
     }
   }
 
