@@ -533,17 +533,26 @@ export function AudioSosForm() {
 
     setFormError("");
     setHasRecordedAudio(false);
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
-      setAudioUrl(null);
-    }
-    setIsPlayingAudio(false);
+
+    // Cleanly reset any existing audio player and object URL
     if (audioPlayerRef.current) {
       try {
         audioPlayerRef.current.pause();
         audioPlayerRef.current.currentTime = 0;
+        audioPlayerRef.current.removeAttribute("src");
+        audioPlayerRef.current.load();
       } catch {}
+      audioPlayerRef.current = null;
     }
+
+    if (audioUrl) {
+      try {
+        URL.revokeObjectURL(audioUrl);
+      } catch {}
+      setAudioUrl(null);
+    }
+
+    setIsPlayingAudio(false);
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
@@ -668,19 +677,20 @@ export function AudioSosForm() {
     setIsTranscribing(false);
     stopLiveAudioVisualizer();
 
-    // 1. Safely stop Speech Recognition
+    // 1. Immediately abort Speech Recognition to free microphone hardware
     if (speechRecRef.current) {
       try {
         speechRecRef.current.onend = null;
         speechRecRef.current.onerror = null;
         speechRecRef.current.onresult = null;
-        speechRecRef.current.stop();
+        speechRecRef.current.abort();
       } catch {}
       speechRecRef.current = null;
     }
 
-    // 2. Safely stop MediaRecorder and flush buffered data
+    // 2. Stop MediaRecorder and flush buffered chunks
     const recorder = mediaRecorderRef.current;
+    mediaRecorderRef.current = null;
     if (recorder && recorder.state !== "inactive") {
       try {
         recorder.requestData();
@@ -689,17 +699,14 @@ export function AudioSosForm() {
         recorder.stop();
       } catch {}
     }
-    mediaRecorderRef.current = null;
 
-    // 3. Stop MediaStream hardware tracks with small delay to ensure all chunks flushed
+    // 3. Immediately release hardware microphone tracks
     const stream = mediaStreamRef.current;
+    mediaStreamRef.current = null;
     if (stream) {
-      setTimeout(() => {
-        try {
-          stream.getTracks().forEach((track) => track.stop());
-        } catch {}
-      }, 200);
-      mediaStreamRef.current = null;
+      try {
+        stream.getTracks().forEach((track) => track.stop());
+      } catch {}
     }
 
     setHasRecordedAudio(true);
@@ -758,12 +765,30 @@ export function AudioSosForm() {
     }
 
     if (audioUrl) {
-      if (!audioPlayerRef.current) {
-        audioPlayerRef.current = new Audio(audioUrl);
-      } else {
-        audioPlayerRef.current.src = audioUrl;
+      // Clean up previous audio instance before creating fresh one
+      if (audioPlayerRef.current) {
+        try {
+          audioPlayerRef.current.pause();
+          audioPlayerRef.current.removeAttribute("src");
+          audioPlayerRef.current.load();
+        } catch {}
+        audioPlayerRef.current = null;
       }
-      audioPlayerRef.current
+
+      const audio = new Audio(audioUrl);
+      audioPlayerRef.current = audio;
+
+      audio.onended = () => {
+        setIsPlayingAudio(false);
+        setIsTranscribing(false);
+      };
+
+      audio.onerror = (e) => {
+        console.warn("Audio element error, falling back to sample voice:", e);
+        playSampleVoice();
+      };
+
+      audio
         .play()
         .then(() => {
           setIsPlayingAudio(true);
@@ -772,10 +797,6 @@ export function AudioSosForm() {
           console.warn("Recorded audio playback notice:", err);
           playSampleVoice();
         });
-      audioPlayerRef.current.onended = () => {
-        setIsPlayingAudio(false);
-        setIsTranscribing(false);
-      };
     } else {
       playSampleVoice();
     }
