@@ -407,15 +407,28 @@ export function AudioSosForm() {
     accumulatedTranscriptRef.current = "";
     isRecordingRef.current = true;
     setIsRecording(true);
+    setRecordElapsed(0);
     hasReceivedSpeechResultsRef.current = false;
     window.clearTimeout(speechFallbackTimerRef.current);
     window.clearTimeout(restartTimeoutRef.current);
     window.clearInterval(streamTimerRef.current);
 
+    // Start elapsed timer immediately from turn 1
+    window.clearInterval(timerRef.current);
+    timerRef.current = window.setInterval(() => {
+      setRecordElapsed((prev) => {
+        if (prev >= 60) {
+          stopRecording();
+          return 60;
+        }
+        return prev + 1;
+      });
+    }, 1000);
+
     // 1. Immediately launch speech recognition synchronously within user gesture turn
     initSpeechRecognition();
 
-    // 2. Safety fallback timer for mobile: if no speech results delivered within 800ms, start live transcription stream
+    // 2. Safety fallback timer: if no speech results delivered within 800ms, start live transcription stream
     speechFallbackTimerRef.current = window.setTimeout(() => {
       if (isRecordingRef.current && !hasReceivedSpeechResultsRef.current) {
         startStreamingTranscription(currentPreset.transcript);
@@ -433,6 +446,13 @@ export function AudioSosForm() {
       }
 
       mediaStreamRef.current = stream;
+
+      // When mic permission is granted on the first try, ensure speech recognition is running actively
+      if (isRecordingRef.current && !hasReceivedSpeechResultsRef.current) {
+        try {
+          initSpeechRecognition();
+        } catch {}
+      }
 
       let mimeType = "audio/webm";
       if (typeof MediaRecorder !== "undefined") {
@@ -464,35 +484,11 @@ export function AudioSosForm() {
       };
 
       mediaRecorder.start(250);
-      setRecordElapsed(0);
-
-      window.clearInterval(timerRef.current);
-      timerRef.current = window.setInterval(() => {
-        setRecordElapsed((prev) => {
-          if (prev >= 60) {
-            stopRecording();
-            return 60;
-          }
-          return prev + 1;
-        });
-      }, 1000);
     } catch (err) {
       console.warn("Microphone access fallback:", err);
       if (!isRecordingRef.current) return;
       
-      setRecordElapsed(0);
       startStreamingTranscription(currentPreset.transcript);
-
-      window.clearInterval(timerRef.current);
-      timerRef.current = window.setInterval(() => {
-        setRecordElapsed((prev) => {
-          if (prev >= 12) {
-            stopRecording();
-            return 12;
-          }
-          return prev + 1;
-        });
-      }, 1000);
     }
   }
 
