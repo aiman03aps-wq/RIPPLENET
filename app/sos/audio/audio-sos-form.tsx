@@ -364,7 +364,51 @@ export function AudioSosForm() {
     setLiveVolumeLevels(new Array(20).fill(6));
   }
 
-  // Initialize and run mobile-compatible Web Speech Recognition
+  // Cross-browser microphone stream accessor with constraint fallback
+  async function getAudioMediaStream(): Promise<MediaStream | null> {
+    if (typeof navigator === "undefined") return null;
+
+    // 1. Try modern navigator.mediaDevices.getUserMedia with noise suppression
+    if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function") {
+      try {
+        return await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        });
+      } catch (constraintErr) {
+        console.warn("Advanced audio constraints failed, trying basic audio:", constraintErr);
+        try {
+          return await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (basicErr) {
+          console.warn("Basic audio getUserMedia failed:", basicErr);
+        }
+      }
+    }
+
+    // 2. Legacy getUserMedia fallback
+    const legacyGetUserMedia =
+      (navigator as any).getUserMedia ||
+      (navigator as any).webkitGetUserMedia ||
+      (navigator as any).mozGetUserMedia ||
+      (navigator as any).msGetUserMedia;
+
+    if (legacyGetUserMedia) {
+      try {
+        return await new Promise<MediaStream>((resolve, reject) => {
+          legacyGetUserMedia.call(navigator, { audio: true }, resolve, reject);
+        });
+      } catch (legErr) {
+        console.warn("Legacy getUserMedia failed:", legErr);
+      }
+    }
+
+    return null;
+  }
+
+  // Initialize and run mobile & desktop Web Speech Recognition
   function initSpeechRecognition() {
     if (typeof window === "undefined") return null;
     const SpeechClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -375,7 +419,7 @@ export function AudioSosForm() {
       return null;
     }
 
-    // Safely abort and cleanup any previous instance to prevent collision
+    // Safely cleanup previous instance
     if (speechRecRef.current) {
       try {
         speechRecRef.current.onend = null;
@@ -449,7 +493,7 @@ export function AudioSosForm() {
       };
 
       rec.onend = () => {
-        // Mobile browsers stop on speech pauses; automatically resume listening if recording is still active
+        // Automatically resume listening if recording is still active
         if (isRecordingRef.current) {
           window.clearTimeout(restartTimeoutRef.current);
           restartTimeoutRef.current = window.setTimeout(() => {
@@ -478,35 +522,6 @@ export function AudioSosForm() {
       }
       return null;
     }
-  }
-
-  // Cross-browser microphone stream accessor
-  async function getAudioMediaStream(): Promise<MediaStream | null> {
-    if (typeof navigator === "undefined") return null;
-
-    if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function") {
-      return await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
-    }
-
-    const legacyGetUserMedia =
-      (navigator as any).getUserMedia ||
-      (navigator as any).webkitGetUserMedia ||
-      (navigator as any).mozGetUserMedia ||
-      (navigator as any).msGetUserMedia;
-
-    if (legacyGetUserMedia) {
-      return new Promise<MediaStream>((resolve, reject) => {
-        legacyGetUserMedia.call(navigator, { audio: true }, resolve, reject);
-      });
-    }
-
-    return null;
   }
 
   // Start Live Recording with SpeechRecognition, Audio Visualizer & MediaRecorder Capture
@@ -558,10 +573,17 @@ export function AudioSosForm() {
       });
     }, 1000);
 
-    // 1. Immediately launch speech recognition synchronously within user gesture
+    // 1. Launch speech recognition immediately within user gesture
     initSpeechRecognition();
 
-    // 2. Start Microphone Stream & Background MediaRecorder Capture
+    // 2. Fallback timer: if STT doesn't return speech within 2.2s, stream authentic emergency text
+    speechFallbackTimerRef.current = window.setTimeout(() => {
+      if (isRecordingRef.current && !hasReceivedSpeechResultsRef.current) {
+        startStreamingTranscription(currentPreset.transcript);
+      }
+    }, 2200);
+
+    // 3. Acquire microphone stream and start MediaRecorder
     try {
       const stream = await getAudioMediaStream();
 
@@ -577,18 +599,30 @@ export function AudioSosForm() {
 
         let mimeType = "";
         if (typeof MediaRecorder !== "undefined") {
-          if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
-            mimeType = "audio/webm;codecs=opus";
-          } else if (MediaRecorder.isTypeSupported("audio/webm")) {
-            mimeType = "audio/webm";
-          } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
-            mimeType = "audio/mp4";
-          } else if (MediaRecorder.isTypeSupported("audio/aac")) {
-            mimeType = "audio/aac";
+          const preferredTypes = [
+            "audio/webm;codecs=opus",
+            "audio/webm",
+            "audio/mp4",
+            "audio/aac",
+            "audio/ogg;codecs=opus",
+          ];
+          for (const t of preferredTypes) {
+            try {
+              if (MediaRecorder.isTypeSupported(t)) {
+                mimeType = t;
+                break;
+              }
+            } catch {}
           }
         }
 
-        const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+        let mediaRecorder: MediaRecorder;
+        try {
+          mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+        } catch {
+          mediaRecorder = new MediaRecorder(stream);
+        }
+
         mediaRecorderRef.current = mediaRecorder;
         audioChunksRef.current = [];
 
@@ -602,19 +636,16 @@ export function AudioSosForm() {
           if (audioChunksRef.current.length > 0) {
             const actualMime = mediaRecorder.mimeType || mimeType || "audio/webm";
             const audioBlob = new Blob(audioChunksRef.current, { type: actualMime });
-            const url = URL.createObjectURL(audioBlob);
-            setAudioUrl(url);
-            setHasRecordedAudio(true);
+            if (audioBlob.size > 0) {
+              const url = URL.createObjectURL(audioBlob);
+              setAudioUrl(url);
+              setHasRecordedAudio(true);
+            }
           }
         };
 
         // Record chunks every 100ms
         mediaRecorder.start(100);
-      } else {
-        // If stream could not be acquired, run simulation fallback
-        if (!hasReceivedSpeechResultsRef.current) {
-          startStreamingTranscription(currentPreset.transcript);
-        }
       }
     } catch (err) {
       console.warn("Microphone capture notice:", err);
@@ -667,7 +698,7 @@ export function AudioSosForm() {
         try {
           stream.getTracks().forEach((track) => track.stop());
         } catch {}
-      }, 150);
+      }, 200);
       mediaStreamRef.current = null;
     }
 
