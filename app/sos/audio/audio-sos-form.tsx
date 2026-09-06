@@ -170,7 +170,10 @@ export function AudioSosForm() {
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number>(undefined);
   const streamTimerRef = useRef<number>(undefined);
+  const speechFallbackTimerRef = useRef<number>(undefined);
   const speechRecRef = useRef<any>(null);
+  const isRecordingRef = useRef<boolean>(false);
+  const hasReceivedSpeechResultsRef = useRef<boolean>(false);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
 
   // When language changes, update transcript and run dynamic real-time transcribing animation
@@ -216,6 +219,7 @@ export function AudioSosForm() {
     return () => {
       window.clearInterval(timerRef.current);
       window.clearInterval(streamTimerRef.current);
+      window.clearTimeout(speechFallbackTimerRef.current);
       if (audioUrl) URL.revokeObjectURL(audioUrl);
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.cancel();
@@ -231,12 +235,15 @@ export function AudioSosForm() {
   // Start Real-Time Live Word-by-Word Transcription Streaming
   function startStreamingTranscription(fullText: string) {
     setIsTranscribing(true);
-    setLiveTranscript("");
     const words = fullText.split(" ");
     let currentIdx = 0;
 
     window.clearInterval(streamTimerRef.current);
     streamTimerRef.current = window.setInterval(() => {
+      if (hasReceivedSpeechResultsRef.current) {
+        window.clearInterval(streamTimerRef.current);
+        return;
+      }
       if (currentIdx < words.length) {
         currentIdx++;
         setStreamedWordIndex(currentIdx);
@@ -245,7 +252,7 @@ export function AudioSosForm() {
         window.clearInterval(streamTimerRef.current);
         setIsTranscribing(false);
       }
-    }, 280);
+    }, 260);
   }
 
   // Start Real Live Recording with SpeechRecognition & Audio Capture
@@ -256,15 +263,19 @@ export function AudioSosForm() {
     setIsPlayingAudio(false);
     setLiveTranscript("");
     setStreamedWordIndex(0);
+    isRecordingRef.current = true;
+    hasReceivedSpeechResultsRef.current = false;
+    window.clearTimeout(speechFallbackTimerRef.current);
+    window.clearInterval(streamTimerRef.current);
 
-    // 1. Hook up browser SpeechRecognition if supported
-    let recStarted = false;
+    // 1. Hook up browser SpeechRecognition (optimized for both Desktop and Mobile / iOS)
     if (typeof window !== "undefined") {
       const SpeechClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (SpeechClass) {
         try {
           const rec = new SpeechClass();
-          rec.continuous = true;
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+          rec.continuous = !isIOS;
           rec.interimResults = true;
           rec.lang = currentPreset.speechLang;
 
@@ -274,51 +285,83 @@ export function AudioSosForm() {
               interim += event.results[i][0].transcript + " ";
             }
             if (interim.trim()) {
+              hasReceivedSpeechResultsRef.current = true;
+              window.clearInterval(streamTimerRef.current);
               setLiveTranscript(interim.trim());
               setStreamedWordIndex(interim.trim().split(" ").length);
+              setIsTranscribing(true);
             }
           };
 
-          rec.onerror = () => {};
+          rec.onerror = (e: any) => {
+            console.warn("Speech recognition error:", e?.error);
+            if (isRecordingRef.current && !hasReceivedSpeechResultsRef.current) {
+              startStreamingTranscription(currentPreset.transcript);
+            }
+          };
+
+          rec.onend = () => {
+            if (isRecordingRef.current && !hasReceivedSpeechResultsRef.current) {
+              startStreamingTranscription(currentPreset.transcript);
+            }
+          };
+
           rec.start();
           speechRecRef.current = rec;
-          recStarted = true;
           setIsTranscribing(true);
         } catch (e) {
           console.warn("Speech recognition initialization fallback:", e);
+          if (isRecordingRef.current) {
+            startStreamingTranscription(currentPreset.transcript);
+          }
         }
       }
     }
 
+    // Safety fallback timer for mobile: if no speech results delivered within 750ms due to mobile mic lock / offline, activate live progressive transcription
+    speechFallbackTimerRef.current = window.setTimeout(() => {
+      if (isRecordingRef.current && !hasReceivedSpeechResultsRef.current) {
+        startStreamingTranscription(currentPreset.transcript);
+      }
+    }, 750);
+
     // 2. Start Real Microphone Capture
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      
+      let mimeType = "audio/webm";
+      if (typeof MediaRecorder !== "undefined") {
+        if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+          mimeType = "audio/webm;codecs=opus";
+        } else if (MediaRecorder.isTypeSupported("audio/webm")) {
+          mimeType = "audio/webm";
+        } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
+          mimeType = "audio/mp4";
+        }
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+        if (event.data && event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
 
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const actualMime = mediaRecorder.mimeType || mimeType;
+        const audioBlob = new Blob(audioChunksRef.current, { type: actualMime });
         const url = URL.createObjectURL(audioBlob);
         setAudioUrl(url);
         setHasRecordedAudio(true);
         stream.getTracks().forEach((track) => track.stop());
       };
 
-      mediaRecorder.start();
+      mediaRecorder.start(250);
       setIsRecording(true);
       setRecordElapsed(0);
-
-      // If speech recognition didn't capture live words within 1.5s, stream real-time preset words
-      if (!recStarted) {
-        startStreamingTranscription(currentPreset.transcript);
-      }
 
       window.clearInterval(timerRef.current);
       timerRef.current = window.setInterval(() => {
@@ -330,8 +373,8 @@ export function AudioSosForm() {
           return prev + 1;
         });
       }, 1000);
-    } catch {
-      // Fallback if mic permission is simulated
+    } catch (err) {
+      console.warn("Microphone access fallback:", err);
       setIsRecording(true);
       setRecordElapsed(0);
       startStreamingTranscription(currentPreset.transcript);
@@ -351,6 +394,8 @@ export function AudioSosForm() {
 
   // Stop Recording
   function stopRecording() {
+    isRecordingRef.current = false;
+    window.clearTimeout(speechFallbackTimerRef.current);
     window.clearInterval(timerRef.current);
     setIsRecording(false);
     setIsTranscribing(false);
@@ -362,7 +407,9 @@ export function AudioSosForm() {
     }
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-      mediaRecorderRef.current.stop();
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {}
     } else {
       setHasRecordedAudio(true);
     }
