@@ -1,4 +1,3 @@
-import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { updateAlertVerification, type AlertStatus } from "@/lib/missing-signals";
 
@@ -43,10 +42,11 @@ export async function PATCH(
     });
 
     return Response.json({ success: true, alert: updated });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to update alert";
     console.error("Error updating missing signal alert:", error);
     return Response.json(
-      { error: error.message || "Failed to update alert" },
+      { error: message },
       { status: 500 }
     );
   }

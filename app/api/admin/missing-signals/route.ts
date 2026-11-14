@@ -126,8 +126,9 @@ export async function POST(req: Request) {
       },
       alerts,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Pipeline execution failed";
     console.error("Error in missing-signals API:", error);
-    return Response.json({ error: error.message || "Pipeline execution failed" }, { status: 500 });
+    return Response.json({ error: message }, { status: 500 });
   }
 }

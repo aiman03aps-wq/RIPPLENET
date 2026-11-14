@@ -1,5 +1,6 @@
 import { prisma } from "./db";
-import { pakistanDistricts, type District } from "./pakistan-districts";
+import { pakistanDistricts } from "./pakistan-districts";
+import type { MissingSignalAlert } from "@prisma/client";
 
 export type ExposureCategory = "high" | "moderate" | "low" | "insufficient_data";
 export type AlertStatus = "pending" | "under_verification" | "verified" | "dismissed" | "escalated" | "insufficient_data";
@@ -111,7 +112,7 @@ export function evaluateMissingSignalRule(params: {
   sosCount: number;
   config: PipelineConfig;
 }) {
-  const { district, exposureCategory, exposureScore, dataSource, sosCount, config } = params;
+  const { exposureCategory, exposureScore, dataSource, sosCount, config } = params;
   const pctScore = exposureScore !== null ? Math.round(exposureScore * 100) : null;
 
   if (exposureCategory === "insufficient_data") {
@@ -228,8 +229,14 @@ export async function runMissingSignalPipeline(customConfig?: Partial<PipelineCo
   }
 
   const profiles = getDistrictExposureProfiles();
-  const generatedAlerts: any[] = [];
-  const scannedDistricts: any[] = [];
+  const generatedAlerts: MissingSignalAlert[] = [];
+  const scannedDistricts: (DistrictExposureProfile & {
+    sosCount: number;
+    lastSosTimestamp: Date | null;
+    flagged: boolean;
+    systemResponse: "insufficient_data" | "potential_reporting_gap" | "high_exposure_active_sos" | "low_exposure_normal" | "moderate_exposure_normal";
+    reason: string;
+  })[] = [];
 
   for (const profile of profiles) {
     const sosCount = sosCountMap.get(profile.district) ?? 0;

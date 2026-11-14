@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma db push && next build --webpack",
-    "vercel-build": "prisma generate && prisma db push && next build --webpack",
+    "build": "node scripts/vercel-build.js",
+    "vercel-build": "node scripts/vercel-build.js",
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint",
