@@ -28,19 +28,10 @@ export default async function VolunteerHistoryPage() {
   const session = await getSession();
   if (!session || session.role !== "volunteer") redirect("/volunteer/login");
 
-  const [resolvedRequests, allTasks, camp] = await Promise.all([
+  const [resolvedRequests, camp] = await Promise.all([
     prisma.request.findMany({
-      where: {
-        OR: [
-          { volunteerId: session.id, status: "resolved" },
-          { campId: session.campId ?? undefined, status: "resolved" },
-          { status: "resolved" },
-        ],
-      },
+      where: { volunteerId: session.id, status: "resolved" },
       orderBy: [{ resolvedAt: "desc" }, { createdAt: "desc" }],
-    }),
-    prisma.request.findMany({
-      where: { volunteerId: session.id },
     }),
     session.campId ? prisma.camp.findUnique({ where: { id: session.campId } }) : null,
   ]);
