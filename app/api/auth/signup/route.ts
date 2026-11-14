@@ -27,7 +27,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!["volunteer", "camp_manager", "admin"].includes(role)) {
+    if (role === "admin" || role === "camp_manager") {
+      return Response.json(
+        { error: "This role cannot be created by self-registration." },
+        { status: 403 }
+      );
+    }
+
+    if (role !== "volunteer") {
       return Response.json({ error: "Invalid role specified." }, { status: 400 });
     }
 
@@ -55,7 +62,7 @@ export async function POST(req: NextRequest) {
         role,
         name,
         phone: phone || "0300 1234567",
-        campId: role === "admin" ? null : campId,
+        campId,
         available: true,
       },
     });
