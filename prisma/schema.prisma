@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -102,4 +101,37 @@ model RestockRequest {
   quantity  Int
   status    String   @default("pending") // pending | approved | fulfilled
   createdAt DateTime @default(now())
+}
+
+model MissingSignalAlert {
+  id                Int                   @id @default(autoincrement())
+  district          String
+  province          String?
+  exposureCategory  String                // "high" | "moderate" | "low" | "insufficient_data"
+  exposureScore     Float?                // numerical exposure index 0-1 (e.g. 0.85)
+  dataSource        String                @default("NDMA Inundation Telemetry / Sentinel-1 SAR (Simulated)")
+  dataTimestamp     DateTime              @default(now())
+  sosCount          Int                   @default(0)
+  monitoringStart   DateTime
+  monitoringEnd     DateTime
+  reason            String
+  status            String                @default("pending") // pending | under_verification | verified | dismissed | escalated
+  verificationNotes String?
+  reviewerName      String?
+  reviewerId        Int?
+  actions           MissingSignalAction[]
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+}
+
+model MissingSignalAction {
+  id         Int                @id @default(autoincrement())
+  alertId    Int
+  alert      MissingSignalAlert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  fromStatus String
+  toStatus   String
+  action     String             // "alert_created" | "verification_initiated" | "status_updated" | "notes_recorded"
+  notes      String?
+  actorName  String
+  createdAt  DateTime           @default(now())
 }

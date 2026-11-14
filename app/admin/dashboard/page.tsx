@@ -10,11 +10,14 @@ import {
   IconCalendar,
   IconCheck,
   IconCoins,
+  IconFloodAgent,
   IconHealthAgent,
+  IconLogisticsAgent,
   IconMapPin,
   IconMenu,
   IconMessageSquareWarning,
   IconResourceAgent,
+  IconRouteAgent,
   IconTrendingUp,
   IconTruck,
   IconUserCheck,
@@ -23,6 +26,8 @@ import {
 import { AdminNav } from "../components/admin-nav";
 import { AdminHeader } from "../components/admin-header";
 import { RecentActivitySection, type ActivityItem } from "./recent-activity-section";
+import { MissingSignalSection } from "./missing-signal-section";
+import { AdminAgentTerminal } from "./admin-agent-terminal";
 import { prisma } from "../../../lib/db";
 import { getSession } from "../../../lib/session";
 import { assessRisk } from "../../../lib/risk";
@@ -169,6 +174,10 @@ export default async function AdminDashboardPage() {
     const idx = riskBars.findIndex((b) => b.label === level);
     if (idx >= 0) riskBars[idx].value += 1;
   }
+
+  const highRiskCount =
+    (riskBars.find((b) => b.label === "Very High")?.value ?? 0) +
+    (riskBars.find((b) => b.label === "High")?.value ?? 0);
 
   const mapPoints: CampMapPoint[] = camps.map((c) => ({
     lat: c.lat,
@@ -362,68 +371,24 @@ export default async function AdminDashboardPage() {
 
       {/* AI Multi-Agent Telemetry & Outbreak Early-Warning Radar */}
       <section className="mt-5 px-5">
-        <div className="rounded-3xl border border-sky-100 bg-gradient-to-b from-white to-sky-50/50 p-4 shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-            <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-ink text-cyan-pop shadow-sm">
-                <IconBrain className="h-4 w-4" />
-              </span>
-              <h2 className="font-display text-[14px] font-bold text-ink">
-                Autonomous 5 AI Agents Telemetry
-              </h2>
-            </div>
-            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-700">
-              Active Radar
-            </span>
-          </div>
-
-          <div className="mt-3 grid grid-cols-2 gap-2.5">
-            {/* Health Agent Outbreak Radar */}
-            <div className="rounded-2xl border border-rose-100 bg-white p-3 shadow-xs">
-              <div className="flex items-center gap-1.5">
-                <IconHealthAgent className="h-4 w-4 text-rose-500" />
-                <span className="text-[11px] font-bold text-slate-700">Disease Outbreak Radar</span>
-              </div>
-              <div className="mt-2 space-y-1 text-[11px]">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Cholera / Diarrhea:</span>
-                  <span className="font-bold text-rose-600">{choleraSignals} flagged</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Malaria Vectors:</span>
-                  <span className="font-bold text-amber-600">{malariaSignals} clusters</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Water Scarcity:</span>
-                  <span className="font-bold text-sky-600">{waterReliefSignals} zones</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Resource Agent Budget Optimizer */}
-            <div className="rounded-2xl border border-emerald-100 bg-white p-3 shadow-xs">
-              <div className="flex items-center gap-1.5">
-                <IconResourceAgent className="h-4 w-4 text-emerald-600" />
-                <span className="text-[11px] font-bold text-slate-700">Resource Agent Telemetry</span>
-              </div>
-              <div className="mt-2 space-y-1 text-[11px]">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Aid Valuation:</span>
-                  <span className="font-bold text-ink">PKR {(totalAidValuationPkr / 1000).toFixed(0)}k</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Cost/Beneficiary:</span>
-                  <span className="font-bold text-emerald-600">PKR {avgCostPerBeneficiary.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Efficiency Score:</span>
-                  <span className="font-bold text-emerald-600">96.8%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <AdminAgentTerminal
+          campsCount={camps.length}
+          openCamps={openCamps}
+          highRiskCount={highRiskCount}
+          restockPending={restockPending}
+          inTransit={inTransit}
+          volunteerCount={volunteerCount}
+          availableVolunteers={availableVolunteers}
+          choleraSignals={choleraSignals}
+          malariaSignals={malariaSignals}
+          waterReliefSignals={waterReliefSignals}
+          totalAidValuationPkr={totalAidValuationPkr}
+          avgCostPerBeneficiary={avgCostPerBeneficiary}
+        />
       </section>
+
+      {/* Missing-Signal Detection Pipeline */}
+      <MissingSignalSection />
 
       <RecentActivitySection initialActivities={activityItems} />
 

@@ -114,7 +114,7 @@ export default async function RequestDetailsPage(props: {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const session = await getSession();
-  if (!session || session.role !== "camp_manager") redirect("/login");
+  if (!session || (session.role !== "camp_manager" && session.role !== "admin")) redirect("/login");
 
   const { id } = await props.params;
   const searchParams = props.searchParams ? await props.searchParams : {};
@@ -153,9 +153,12 @@ export default async function RequestDetailsPage(props: {
     fetchRainfall({ lat: request.lat, lng: request.lng }),
   ]);
 
-
+  const targetCampId = session.campId ?? camp?.id;
   const volunteers = await prisma.user.findMany({
-    where: { role: "volunteer", campId: session.campId },
+    where: {
+      role: "volunteer",
+      ...(targetCampId ? { campId: targetCampId } : {}),
+    },
     orderBy: [{ available: "desc" }, { name: "asc" }],
   });
   const volunteerIds = volunteers.map((v) => v.id);
@@ -242,7 +245,17 @@ export default async function RequestDetailsPage(props: {
 
   if (analysisIsFresh && typeof request.agentAnalysis === "string") {
     try {
-      pipeline = JSON.parse(request.agentAnalysis) as LiveMultiAgentPipelineResult;
+      const parsed = JSON.parse(request.agentAnalysis) as LiveMultiAgentPipelineResult;
+      const allCompleted = [
+        parsed.floodAgent,
+        parsed.healthAgent,
+        parsed.logisticsAgent,
+        parsed.routeAgent,
+        parsed.resourceAgent,
+      ].every((agent) => agent?.status === "completed");
+      if (allCompleted) {
+        pipeline = parsed;
+      }
     } catch {
       pipeline = null;
     }
@@ -290,7 +303,7 @@ export default async function RequestDetailsPage(props: {
   })) ?? [];
 
   return (
-    <AuthGuard role="camp_manager" loginHref="/login">
+    <AuthGuard role={["camp_manager", "admin"]} loginHref="/login">
     <div className="relative mx-auto min-h-dvh w-full max-w-[480px] bg-paper shadow-xl">
       <header className="flex items-center gap-2 px-5 pt-2">
         <Link

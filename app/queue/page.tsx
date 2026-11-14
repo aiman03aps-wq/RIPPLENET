@@ -36,7 +36,7 @@ export default async function QueuePage(props: {
   searchParams?: Promise<{ campId?: string }>;
 }) {
   const session = await getSession();
-  if (!session || session.role !== "camp_manager") redirect("/login");
+  if (!session || (session.role !== "camp_manager" && session.role !== "admin")) redirect("/login");
 
   const searchParams = props.searchParams ? await props.searchParams : {};
   const qCampId = searchParams.campId ? Number(searchParams.campId) : null;
@@ -78,7 +78,7 @@ export default async function QueuePage(props: {
   }));
 
   return (
-    <AuthGuard role="camp_manager" loginHref="/login">
+    <AuthGuard role={["camp_manager", "admin"]} loginHref="/login">
       <div className="relative mx-auto min-h-dvh w-full max-w-[480px] bg-paper shadow-xl">
         <header className="flex items-center justify-between px-5 pt-7">
           <CampSwitcher

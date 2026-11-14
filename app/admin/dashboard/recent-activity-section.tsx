@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   IconCheck,
   IconClock,
@@ -230,10 +231,9 @@ export function RecentActivitySection({ initialActivities }: RecentActivitySecti
               {filtered.map((item) => {
                 const config = typeConfig[item.type] || typeConfig.pending;
                 const Icon = config.icon;
-                return (
+                const card = (
                   <div
-                    key={item.id}
-                    className="flex items-start gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-xs"
+                    className="flex items-start gap-3 rounded-2xl border border-slate-100 bg-white p-3.5 shadow-xs hover:border-sky-200 transition"
                   >
                     <span
                       className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${config.bg} ${config.text}`}
@@ -265,6 +265,20 @@ export function RecentActivitySection({ initialActivities }: RecentActivitySecti
                         </span>
                       </div>
                     </div>
+                  </div>
+                );
+
+                if (item.type !== "restock") {
+                  return (
+                    <Link key={item.id} href={`/queue/${item.id}`} className="block">
+                      {card}
+                    </Link>
+                  );
+                }
+
+                return (
+                  <div key={item.id}>
+                    {card}
                   </div>
                 );
               })}
