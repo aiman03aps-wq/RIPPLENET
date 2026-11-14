@@ -18,6 +18,7 @@ import {
   IconSparkles,
   IconWaterKit,
 } from "./icons";
+import { RevealOnScroll } from "./reveal-on-scroll";
 
 const primaryMetrics = [
   {
@@ -131,11 +132,11 @@ export function LiveImpactSection() {
   }, [modalOpen]);
 
   return (
-    <section className="relative z-0 mt-9 px-5">
+    <RevealOnScroll className="relative z-0 mt-9 px-5">
       <div className="flex items-baseline justify-between">
         <h2 className="flex items-center gap-2 font-display text-[19px] font-bold tracking-tight text-ink">
           <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75 motion-reduce:animate-none" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
           </span>
           Live Impact Metrics
@@ -180,7 +181,7 @@ export function LiveImpactSection() {
             role="dialog"
             aria-modal="true"
             aria-label="Live impact operations report"
-            className="relative z-10 w-full max-w-[480px] max-h-[88vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-white p-5 pb-8 shadow-2xl animate-slide-up"
+            className="relative z-10 w-full max-w-[480px] max-h-[88vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-white p-5 pb-8 shadow-2xl animate-slide-up motion-reduce:animate-none"
           >
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
@@ -273,6 +274,6 @@ export function LiveImpactSection() {
         </div>,
         document.body
       )}
-    </section>
+    </RevealOnScroll>
   );
 }
