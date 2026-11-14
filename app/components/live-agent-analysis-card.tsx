@@ -154,8 +154,10 @@ export function LiveAgentAnalysisCard({
   pipeline: LiveMultiAgentPipelineResult;
 }) {
   const [active, setActive] = useState<AgentKey>("health");
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const url = new URL(window.location.href);
     if (url.searchParams.get("refreshAnalysis") === "1") {
       url.searchParams.delete("refreshAnalysis");
@@ -182,8 +184,8 @@ export function LiveAgentAnalysisCard({
           </span>
           <div>
             <h3 className="font-display text-[15px] font-bold text-ink">Live AI Agent Analysis</h3>
-            <p className="text-[10px] text-slate-500">
-              Groq · {completedCount}/5 agents completed · {new Date(pipeline.evaluatedAt).toLocaleTimeString()}
+            <p className="text-[10px] text-slate-500" suppressHydrationWarning>
+              {pipeline.provider ?? "Autonomous Engine"} · {completedCount}/5 agents completed{mounted ? ` · ${new Date(pipeline.evaluatedAt).toLocaleTimeString()}` : ""}
             </p>
           </div>
         </div>

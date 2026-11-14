@@ -10,11 +10,14 @@ import {
   IconCalendar,
   IconCheck,
   IconCoins,
+  IconFloodAgent,
   IconHealthAgent,
+  IconLogisticsAgent,
   IconMapPin,
   IconMenu,
   IconMessageSquareWarning,
   IconResourceAgent,
+  IconRouteAgent,
   IconTrendingUp,
   IconTruck,
   IconUserCheck,
@@ -170,6 +173,10 @@ export default async function AdminDashboardPage() {
     const idx = riskBars.findIndex((b) => b.label === level);
     if (idx >= 0) riskBars[idx].value += 1;
   }
+
+  const highRiskCount =
+    (riskBars.find((b) => b.label === "Very High")?.value ?? 0) +
+    (riskBars.find((b) => b.label === "High")?.value ?? 0);
 
   const mapPoints: CampMapPoint[] = camps.map((c) => ({
     lat: c.lat,
@@ -378,8 +385,30 @@ export default async function AdminDashboardPage() {
             </span>
           </div>
 
-          <div className="mt-3 grid grid-cols-2 gap-2.5">
-            {/* Health Agent Outbreak Radar */}
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            {/* 1. Flood Evidence Agent */}
+            <div className="rounded-2xl border border-sky-100 bg-white p-3 shadow-xs">
+              <div className="flex items-center gap-1.5">
+                <IconFloodAgent className="h-4 w-4 text-sky-500" />
+                <span className="text-[11px] font-bold text-slate-700">Flood Inundation Radar</span>
+              </div>
+              <div className="mt-2 space-y-1 text-[11px]">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Monitored Basins:</span>
+                  <span className="font-bold text-sky-600">{camps.length} Districts Active</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Satellite SAR:</span>
+                  <span className="font-bold text-emerald-600">Sentinel-1 Online</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Critical Zones:</span>
+                  <span className="font-bold text-rose-600">{highRiskCount} High Risk</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Health Agent Outbreak Radar */}
             <div className="rounded-2xl border border-rose-100 bg-white p-3 shadow-xs">
               <div className="flex items-center gap-1.5">
                 <IconHealthAgent className="h-4 w-4 text-rose-500" />
@@ -401,8 +430,52 @@ export default async function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Resource Agent Budget Optimizer */}
-            <div className="rounded-2xl border border-emerald-100 bg-white p-3 shadow-xs">
+            {/* 3. Logistics Supply Agent */}
+            <div className="rounded-2xl border border-amber-100 bg-white p-3 shadow-xs">
+              <div className="flex items-center gap-1.5">
+                <IconLogisticsAgent className="h-4 w-4 text-amber-500" />
+                <span className="text-[11px] font-bold text-slate-700">Relief Logistics Pipeline</span>
+              </div>
+              <div className="mt-2 space-y-1 text-[11px]">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Relief Camps:</span>
+                  <span className="font-bold text-ink">{openCamps} Open / {camps.length} Hubs</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Restock Requests:</span>
+                  <span className="font-bold text-amber-600">{restockPending} Pending</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Parcel Auto-Packing:</span>
+                  <span className="font-bold text-emerald-600">Active</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Route Fleet Agent */}
+            <div className="rounded-2xl border border-indigo-100 bg-white p-3 shadow-xs">
+              <div className="flex items-center gap-1.5">
+                <IconRouteAgent className="h-4 w-4 text-indigo-500" />
+                <span className="text-[11px] font-bold text-slate-700">Mobility & Route Fleet</span>
+              </div>
+              <div className="mt-2 space-y-1 text-[11px]">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Active Dispatches:</span>
+                  <span className="font-bold text-indigo-600">{inTransit} En Route</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Field Responders:</span>
+                  <span className="font-bold text-ink">{volunteerCount - availableVolunteers} Deployed ({volunteerCount} Total)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Dry-Lane Routing:</span>
+                  <span className="font-bold text-emerald-600">Dynamic Bypass</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 5. Resource Agent Budget Optimizer */}
+            <div className="rounded-2xl border border-emerald-100 bg-white p-3 shadow-xs sm:col-span-2 lg:col-span-1">
               <div className="flex items-center gap-1.5">
                 <IconResourceAgent className="h-4 w-4 text-emerald-600" />
                 <span className="text-[11px] font-bold text-slate-700">Resource Agent Telemetry</span>
