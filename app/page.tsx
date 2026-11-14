@@ -281,7 +281,7 @@ export default function Home() {
 
         <LiveImpactSection />
 
-        <section className="mt-9 px-5">
+        <section className="relative z-0 mt-9 px-5">
           <div className="flex items-baseline justify-between">
             <h2 className="font-display text-[19px] font-bold tracking-tight text-ink">
               Nearby Relief Camps

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   IconChevronRight,
@@ -113,9 +114,24 @@ const provinceDistribution = [
 
 export function LiveImpactSection() {
   const [modalOpen, setModalOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (modalOpen) {
+      const original = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = original;
+      };
+    }
+  }, [modalOpen]);
 
   return (
-    <section className="mt-9 px-5">
+    <section className="relative z-0 mt-9 px-5">
       <div className="flex items-baseline justify-between">
         <h2 className="flex items-center gap-2 font-display text-[19px] font-bold tracking-tight text-ink">
           <span className="relative flex h-2 w-2">
@@ -152,14 +168,19 @@ export function LiveImpactSection() {
         ))}
       </div>
 
-      {/* Detailed Live Impact Report Modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-xs">
+      {/* Detailed Live Impact Report Modal - Rendered via Portal at Body Level to Prevent Any Intersecting */}
+      {modalOpen && mounted && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-fade-in">
+          <div
+            className="fixed inset-0 -z-10"
+            onClick={() => setModalOpen(false)}
+            aria-hidden="true"
+          />
           <div
             role="dialog"
             aria-modal="true"
             aria-label="Live impact operations report"
-            className="w-full max-w-[480px] max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-white p-5 pb-8 shadow-2xl animate-slide-up"
+            className="relative z-10 w-full max-w-[480px] max-h-[88vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-white p-5 pb-8 shadow-2xl animate-slide-up"
           >
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
@@ -249,7 +270,8 @@ export function LiveImpactSection() {
               </Link>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </section>
   );

@@ -23,6 +23,7 @@ import {
 import { AdminNav } from "../components/admin-nav";
 import { AdminHeader } from "../components/admin-header";
 import { RecentActivitySection, type ActivityItem } from "./recent-activity-section";
+import { MissingSignalSection } from "./missing-signal-section";
 import { prisma } from "../../../lib/db";
 import { getSession } from "../../../lib/session";
 import { assessRisk } from "../../../lib/risk";
@@ -421,6 +422,9 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
       </section>
+
+      {/* Missing-Signal Detection Pipeline */}
+      <MissingSignalSection />
 
       <RecentActivitySection initialActivities={activityItems} />
 
