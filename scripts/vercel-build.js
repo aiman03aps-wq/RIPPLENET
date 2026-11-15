@@ -17,20 +17,7 @@ try {
   process.exit(1);
 }
 
-// 3. Push schema to database if DATABASE_URL is available
-if (process.env.DATABASE_URL && !process.env.DATABASE_URL.startsWith("file:")) {
-  console.log("Syncing database schema with prisma db push...");
-  try {
-    execSync("npx prisma db push --accept-data-loss", { stdio: "inherit", env: process.env });
-    console.log("Database schema synced successfully.");
-  } catch (err) {
-    console.warn("Notice: prisma db push warning during build (proceeding):", err.message);
-  }
-} else {
-  console.log("Skipping prisma db push for local/dummy database URL during static build.");
-}
-
-// 4. Build Next.js Application with webpack
+// 3. Build Next.js Application with webpack (Database mutations strictly excluded from builds)
 console.log("Building Next.js application with webpack...");
 try {
   execSync("npx next build --webpack", { stdio: "inherit", env: process.env });

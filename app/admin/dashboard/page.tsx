@@ -6,6 +6,7 @@ import { AuthGuard } from "../../components/auth-guard";
 import { CampsMap, type CampMapPoint } from "../../components/camps-map";
 import { NotificationBell } from "../../components/notification-bell";
 import {
+  IconArrowRight,
   IconBrain,
   IconCalendar,
   IconCheck,
@@ -18,6 +19,7 @@ import {
   IconMessageSquareWarning,
   IconResourceAgent,
   IconRouteAgent,
+  IconShield,
   IconTrendingUp,
   IconTruck,
   IconUserCheck,
@@ -122,8 +124,17 @@ export default async function AdminDashboardPage() {
   const session = await getSession();
   if (!session || session.role !== "admin") redirect("/admin/login");
 
-  const [statusGroups, camps, volunteerCount, availableVolunteers, restockPending, unresolvedComplaints, recentRequests, allRequests] =
-    await Promise.all([
+  let statusGroups: any[] = [];
+  let camps: any[] = [];
+  let volunteerCount = 0;
+  let availableVolunteers = 0;
+  let restockPending = 0;
+  let unresolvedComplaints = 0;
+  let recentRequests: any[] = [];
+  let allRequests: any[] = [];
+
+  try {
+    const results = await Promise.all([
       prisma.request.groupBy({ by: ["status"], _count: { _all: true } }),
       prisma.camp.findMany({ orderBy: { name: "asc" } }),
       prisma.user.count({ where: { role: "volunteer" } }),
@@ -142,6 +153,17 @@ export default async function AdminDashboardPage() {
         select: { priority: true, type: true, peopleCount: true, needs: true, createdAt: true },
       }),
     ]);
+    statusGroups = results[0];
+    camps = results[1];
+    volunteerCount = results[2];
+    availableVolunteers = results[3];
+    restockPending = results[4];
+    unresolvedComplaints = results[5];
+    recentRequests = results[6];
+    allRequests = results[7];
+  } catch (dbErr) {
+    console.warn("Prisma unavailable or unconfigured in local development, running dashboard with safe defaults:", (dbErr as Error).message);
+  }
 
   const statusCounts: Record<string, number> = {};
   for (const g of statusGroups) statusCounts[g.status] = g._count._all;
@@ -389,6 +411,38 @@ export default async function AdminDashboardPage() {
 
       {/* Missing-Signal Detection Pipeline */}
       <MissingSignalSection />
+
+      {/* Climate Resilience, Recovery & Adaptation Engine Banner */}
+      <section className="mt-4 px-5">
+        <Link
+          href="/admin/resilience"
+          className="group block rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50/80 via-white to-slate-50 p-4 shadow-sm transition hover:border-blue-400 hover:shadow-md"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
+                <IconShield className="h-5 w-5" />
+              </span>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[13px] font-bold text-ink group-hover:text-blue-600 transition">
+                    Climate Resilience & Recovery Engine
+                  </span>
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-extrabold text-amber-800">
+                    PROTOTYPE DEMO
+                  </span>
+                </div>
+                <p className="text-[11px] font-medium text-slate-500">
+                  Illustrative Demo Figures: Baseline CRI 5.3/10 · Disrupted: 1 · Return Rate: 29.0%
+                </p>
+              </div>
+            </div>
+            <span className="text-xs font-bold text-blue-600 group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+              Open <IconArrowRight className="h-3.5 w-3.5" />
+            </span>
+          </div>
+        </Link>
+      </section>
 
       <RecentActivitySection initialActivities={activityItems} />
 

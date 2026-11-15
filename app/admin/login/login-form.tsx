@@ -6,6 +6,22 @@ import { IconEye, IconEyeOff, IconShield } from "../../components/icons";
 
 const fieldLabel = "text-[12px] font-semibold text-slate-700";
 
+function getSafeRedirect(target: string | null): string {
+  const fallback = "/admin/dashboard";
+  if (!target || typeof target !== "string") return fallback;
+  const trimmed = target.trim();
+  // Ensure target is a valid relative path, not protocol-relative (//) and contains no protocol scheme or backslashes
+  if (
+    !trimmed.startsWith("/") ||
+    trimmed.startsWith("//") ||
+    trimmed.includes(":") ||
+    trimmed.includes("\\")
+  ) {
+    return fallback;
+  }
+  return trimmed;
+}
+
 export function AdminLoginForm() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
@@ -32,7 +48,9 @@ export function AdminLoginForm() {
         setError(data.error ?? "Login failed. Please try again.");
         return;
       }
-      router.push("/admin/dashboard");
+      const rawNext = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("next") : null;
+      const safeNext = getSafeRedirect(rawNext);
+      router.push(safeNext);
       router.refresh();
     } catch {
       setError("Network error. Please try again.");
