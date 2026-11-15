@@ -9,11 +9,13 @@ import {
   IconReportChart,
   IconTent,
   IconMessageSquareWarning,
+  IconShield,
 } from "../../components/icons";
 import { LogoutButton } from "../../components/logout-button";
 
 const items = [
   { label: "Dashboard", href: "/admin/dashboard", Icon: IconLayoutDashboard },
+  { label: "Resilience", href: "/admin/resilience", Icon: IconShield },
   { label: "Camps", href: "/admin/camps", Icon: IconTent },
   { label: "Restock", href: "/admin/restock", Icon: IconPackage },
   { label: "Complaints", href: "/admin/complaints", Icon: IconMessageSquareWarning },

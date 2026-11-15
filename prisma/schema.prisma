@@ -136,3 +136,289 @@ model MissingSignalAction {
   actorName  String
   createdAt  DateTime           @default(now())
 }
+
+// =============================================================================
+// ENUMS FOR CLIMATE RESILIENCE, SERVICES CONTINUITY, RECOVERY & ADAPTATION
+// =============================================================================
+
+enum DataProvenance {
+  VERIFIED_FIELD_OBSERVATION
+  COMMUNITY_REPORTED
+  ADMINISTRATOR_ENTERED
+  EXTERNAL_SENSOR_FEED
+  SIMULATED_DEMONSTRATION
+}
+
+enum AdminLevel {
+  DISTRICT
+  TEHSIL
+  UNION_COUNCIL
+  COMMUNITY
+}
+
+enum CriEvidenceStatus {
+  OFFICIAL_CRI
+  SIMULATED_CRI
+  INSUFFICIENT_DATA
+}
+
+enum AriEvidenceStatus {
+  OFFICIAL_ARI
+  SIMULATED_ARI
+  INSUFFICIENT_DATA
+}
+
+enum ServiceOperationalStatus {
+  UNVERIFIED_REPORT
+  OPERATIONAL
+  POTENTIAL_DISRUPTION_FLAGGED
+  VERIFIED_DISRUPTED
+  PARTIALLY_RESTORED
+  FULLY_RESTORED
+}
+
+enum EssentialServiceType {
+  DRINKING_WATER
+  HEALTHCARE_FACILITY
+  SANITATION_SEWERAGE
+  ELECTRICITY_GRID
+  TELECOMMUNICATIONS
+  ROADS_ACCESS_CORRIDOR
+  EVACUATION_SHELTER
+}
+
+enum AdaptationActionStatus {
+  PLANNED
+  ONGOING
+  COMPLETED
+  INDEPENDENTLY_VERIFIED
+}
+
+enum AdaptationSector {
+  WATER
+  INFRASTRUCTURE
+  EARLY_WARNING
+  SHELTER
+  SANITATION
+  LIVELIHOODS
+}
+
+// =============================================================================
+// CLIMATE RESILIENCE, SERVICES CONTINUITY, RECOVERY & ADAPTATION MODELS
+// =============================================================================
+
+model GeoBoundary {
+  id                  Int                       @id @default(autoincrement())
+  code                String                    @unique // e.g. "PK-SD-DADU", "PK-SD-DADU-JOHI"
+  name                String
+  province            String                    // "Punjab" | "Sindh" | "Balochistan" | "Khyber Pakhtunkhwa"
+  level               AdminLevel                @default(DISTRICT)
+  parentId            Int?
+  parent              GeoBoundary?              @relation("GeoHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children            GeoBoundary[]             @relation("GeoHierarchy")
+  lat                 Float?                    // Optional GPS centroid where surveyed
+  lng                 Float?                    // Optional GPS centroid where surveyed
+  population          Int?                      // Total population count
+  populationSource    String?                   // e.g. "Pakistan Bureau of Statistics 2023 Census"
+  populationYear      Int?                      // e.g. 2023
+  resilienceProfiles  ResilienceAssessment[]
+  serviceRecords      EssentialServiceRecord[]
+  recoveryRecords     RecoveryTrackingRecord[]
+  displacementRecords DisplacementAssessment[]
+  adaptationRecords   ClimateAdaptationRecord[]
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  @@index([parentId])
+  @@index([level])
+  @@index([province])
+}
+
+model ResilienceAssessment {
+  id                    Int             @id @default(autoincrement())
+  boundaryId            Int
+  boundary              GeoBoundary     @relation(fields: [boundaryId], references: [id], onDelete: Restrict)
+  compositeScore        Float?          // CRI: 0.0 - 100.0 (null if minimum evidence not met)
+  confidenceScore       Float           // Data Confidence Score (DCS): 0.0 - 100.0 (strictly separate)
+  evidenceStatus        CriEvidenceStatus @default(INSUFFICIENT_DATA)
+  housingResilience     Float?          // D1: 0.0 - 10.0 (Pukka dwelling ratio * 10)
+  waterAccessScore      Float?          // D2: 0.0 - 10.0 (Protected water ratio * 10)
+  healthcareAccessScore Float?          // D3: 0.0 - 10.0 (Distance/travel time inverted)
+  sanitationScore       Float?          // D4: 0.0 - 10.0 (Covered sanitation ratio * 10)
+  earlyWarningScore     Float?          // D5: 0.0 - 10.0 (Coverage ratio * 10)
+  evacuationCapacity    Float?          // D6: 0.0 - 10.0 (Shelter beds per 1k ratio)
+  disasterPreparedness  Float?          // D7: 0.0 - 10.0 (Checklist points)
+  socialSupportIndex    Float?          // D8: 0.0 - 10.0 (Volunteers per 1k ratio)
+  dimensionEvidenceJson Json            // Detailed per-dimension object: { [dimKey]: { score, provenance, source, assessedAt, freshnessMonths, isSimulated } }
+  hasSimulatedData      Boolean         @default(false) // True if ANY dimension uses simulated data -> disqualifies from OFFICIAL_CRI
+  overallProvenance     DataProvenance  @default(SIMULATED_DEMONSTRATION)
+  sourceAttribution     String          // Summary citation e.g. "Pakistan Population Census / UNICEF MICS"
+  assessedBy            String          // Verifying agency or auditor name
+  assessmentDate        DateTime        @default(now())
+  notes                 String?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  @@index([boundaryId])
+  @@index([assessmentDate])
+  @@index([evidenceStatus])
+  @@index([overallProvenance])
+}
+
+model EssentialServiceRecord {
+  id                         Int                             @id @default(autoincrement())
+  boundaryId                 Int
+  boundary                   GeoBoundary                     @relation(fields: [boundaryId], references: [id], onDelete: Restrict)
+  serviceType                EssentialServiceType
+  facilityName               String                          // e.g. "Taluka Hospital Johi" or "Water Works Station 3"
+  status                     ServiceOperationalStatus        // Explicit status (no default OPERATIONAL)
+  isVerified                 Boolean                         @default(false) // Unverified records cannot masquerade as confirmed operational
+  verifiedBy                 String?                         // Name/title of verifier
+  verifiedAt                 DateTime?
+  initialVerificationDate    DateTime?
+  flaggedBySosVolume         Boolean                         @default(false) // SOS is advisory cue ONLY
+  relatedSosCount            Int                             @default(0)
+  disruptionTriggeredAt      DateTime?
+  verifiedDisruptedAt        DateTime?
+  restoredAt                 DateTime?
+  disruptionDurationHrs      Float?
+  affectedPopulationEstimate Int?
+  alternativeServicesInUse   String?                         // e.g. "2x 5000L Mobile Water Bowsers deployed"
+  verificationNotes          String?
+  sourceEvidenceUrl          String?
+  dataProvenance             DataProvenance                  @default(SIMULATED_DEMONSTRATION)
+  statusHistory              EssentialServiceStatusHistory[]
+  createdAt                  DateTime                        @default(now())
+  updatedAt                  DateTime                        @updatedAt
+
+  @@index([boundaryId])
+  @@index([serviceType])
+  @@index([status])
+  @@index([isVerified])
+  @@index([dataProvenance])
+}
+
+model EssentialServiceStatusHistory {
+  id                       Int                      @id @default(autoincrement())
+  serviceRecordId          Int
+  serviceRecord            EssentialServiceRecord   @relation(fields: [serviceRecordId], references: [id], onDelete: Restrict)
+  fromStatus               ServiceOperationalStatus?
+  toStatus                 ServiceOperationalStatus
+  isVerified               Boolean                  @default(false)
+  disruptionDurationHrs    Float?
+  alternativeServicesInUse String?
+  actorName                String
+  actorRole                String
+  notes                    String?
+  sourceEvidenceUrl        String?
+  dataProvenance           DataProvenance           @default(SIMULATED_DEMONSTRATION)
+  timestamp                DateTime                 @default(now())
+
+  @@index([serviceRecordId])
+  @@index([timestamp])
+}
+
+model RecoveryTrackingRecord {
+  id                       Int            @id @default(autoincrement())
+  boundaryId               Int
+  boundary                 GeoBoundary    @relation(fields: [boundaryId], references: [id], onDelete: Restrict)
+  disasterEventLabel       String         // e.g. "Monsoon Flood 2026 Phase II"
+  baselineAssessmentDate   DateTime       // Baseline benchmark date when disaster impact was quantified
+  daysPostDisaster         Int            // e.g. 30, 60, 90, 180, 365
+  waterRestorationPct      Float?         // Nullable: null if evidence unavailable (never assumed 0%)
+  healthcareRestorationPct Float?         // Nullable: null if evidence unavailable
+  sanitationRestorationPct Float?         // Nullable: null if evidence unavailable
+  housingRestorationPct    Float?         // Nullable: null if evidence unavailable
+  roadsRestorationPct      Float?         // Nullable: null if evidence unavailable
+  educationRestorationPct  Float?         // Nullable: null if evidence unavailable
+  livelihoodsRestorationPct Float?        // Nullable: null if evidence unavailable
+  aggregateRecoveryIndex   Float?         // Nullable: null if evidence requirements not met
+  sectorEvidenceJson       Json           // Detailed evidence per sector: { [sector]: { pct, denominator, numerator, unit, labReportUrl, verifiedBy, verifiedAt } }
+  evidenceStatus           AriEvidenceStatus @default(INSUFFICIENT_DATA) // OFFICIAL_ARI, SIMULATED_ARI, or INSUFFICIENT_DATA
+  leadAgency               String         // e.g. "Alkhidmat Reconstruction Taskforce"
+  dataProvenance           DataProvenance @default(SIMULATED_DEMONSTRATION)
+  monitoredDate            DateTime       @default(now())
+  fieldNotes               String?
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
+
+  @@index([boundaryId])
+  @@index([disasterEventLabel])
+  @@index([monitoredDate])
+  @@index([dataProvenance])
+}
+
+model DisplacementAssessment {
+  id                      Int            @id @default(autoincrement())
+  boundaryId              Int
+  boundary                GeoBoundary    @relation(fields: [boundaryId], references: [id], onDelete: Restrict)
+  assessmentDate          DateTime       @default(now())
+  unit                    String         @default("INDIVIDUALS") // "INDIVIDUALS" | "HOUSEHOLDS"
+  totalDisplacedBaseline  Int            // Must equal verifiedReturnedCount + inCampShelterCount + secondaryDisplacedCount + unaccountedCount
+  verifiedReturnedCount   Int            // Verified reoccupied permanent home
+  inCampShelterCount      Int            // Currently in formal camps (Camp.occupancy)
+  secondaryDisplacedCount Int            // Living in roadside tents / informal sites
+  unaccountedCount        Int            // Location unverified
+  verifiedReturnRatePct   Float          // Strictly computed: (verifiedReturnedCount / totalDisplacedBaseline) * 100
+  isBalanceValid          Boolean        // Confirms mathematical population balance integrity (no default: must be validated)
+  verificationMethod      String         // e.g. "Physical household survey by village council"
+  verifiedBy              String         // Auditor name/agency
+  dataProvenance          DataProvenance @default(SIMULATED_DEMONSTRATION)
+  notes                   String?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+
+  @@index([boundaryId])
+  @@index([assessmentDate])
+  @@index([dataProvenance])
+}
+
+model ClimateAdaptationRecord {
+  id                     Int                    @id @default(autoincrement())
+  boundaryId             Int
+  boundary               GeoBoundary            @relation(fields: [boundaryId], references: [id], onDelete: Restrict)
+  title                  String                 // e.g. "Elevated Solar RO Water Plant"
+  sector                 AdaptationSector
+  description            String
+  status                 AdaptationActionStatus @default(PLANNED)
+  targetBeneficiaries    Int
+  verifiedBeneficiaries  Int                    @default(0)
+  physicalProgressPct    Float                  @default(0.0) // 0.0 - 100.0%
+  implementingPartner    String                 // e.g. "Alkhidmat Foundation Pakistan"
+  leadEngineer           String?
+  budgetPkr              Decimal?               @db.Decimal(14, 2) // High precision monetary decimal
+  commencedAt            DateTime?
+  completedAt            DateTime?
+  independentlyVerified  Boolean                @default(false) // Gated: true ONLY when status == INDEPENDENTLY_VERIFIED
+  verifiedAt             DateTime?
+  verifyingAuditor       String?                // e.g. "UN-Habitat Third-Party Inspection"
+  outcomeMetricsJson     Json?                  // Structured engineering metrics e.g. {"flowRateLph": 2000, "floodClearanceM": 2.5}
+  evidenceAttachmentUrl  String?
+  resilienceRecalculated Boolean                @default(false) // Gated: true ONLY after independentlyVerified == true AND recalculation run
+  dataProvenance         DataProvenance         @default(SIMULATED_DEMONSTRATION)
+  auditTrail             AdaptationActionAudit[]
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  @@index([boundaryId])
+  @@index([status])
+  @@index([sector])
+  @@index([independentlyVerified])
+  @@index([dataProvenance])
+}
+
+model AdaptationActionAudit {
+  id         Int                    @id @default(autoincrement())
+  actionId   Int
+  action     ClimateAdaptationRecord @relation(fields: [actionId], references: [id], onDelete: Restrict)
+  fromStatus AdaptationActionStatus
+  toStatus   AdaptationActionStatus
+  actorName  String
+  actorRole  String
+  auditNotes String?
+  metadata   Json?
+  timestamp  DateTime               @default(now())
+
+  @@index([actionId])
+  @@index([timestamp])
+}

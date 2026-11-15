@@ -1,9 +1,18 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
-const secret = new TextEncoder().encode(
-  process.env.AUTH_SECRET ?? "ripplenet-dev-secret-change-in-production"
-);
+function getJwtSecret(): Uint8Array {
+  const envSecret = process.env.AUTH_SECRET;
+  if (!envSecret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "FATAL: AUTH_SECRET environment variable is missing in production. Refusing to operate session authentication with insecure fallback."
+      );
+    }
+    return new TextEncoder().encode("ripplenet-dev-secret-change-in-production");
+  }
+  return new TextEncoder().encode(envSecret);
+}
 
 export const SESSION_COOKIE = "ripplenet_session";
 
@@ -18,6 +27,7 @@ export interface SessionUser {
 }
 
 export async function createSession(user: SessionUser) {
+  const secretKey = getJwtSecret();
   const token = await new SignJWT({
     id: user.id,
     username: user.username,
@@ -28,13 +38,14 @@ export async function createSession(user: SessionUser) {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
-    .sign(secret);
+    .sign(secretKey);
 
   const store = await cookies();
   store.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
+    secure: process.env.NODE_ENV === "production",
     maxAge: 60 * 60 * 24 * 7,
   });
 }
@@ -44,7 +55,8 @@ export async function getSession(): Promise<SessionUser | null> {
   const token = store.get(SESSION_COOKIE)?.value;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, secret);
+    const secretKey = getJwtSecret();
+    const { payload } = await jwtVerify(token, secretKey);
     if (typeof payload.id !== "number" || typeof payload.role !== "string") return null;
     return {
       id: payload.id,
